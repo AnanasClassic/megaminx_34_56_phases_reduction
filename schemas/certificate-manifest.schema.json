@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Distributed phase-pair certificate manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "pair", "metric", "claim", "archive", "database",
+    "exact_reductions", "raw_compositions", "certificates_by_beam_width",
+    "checkpoints"
+  ],
+  "properties": {
+    "schema_version": {"const": 1},
+    "pair": {"enum": ["pair34", "pair56"]},
+    "metric": {"const": "FTM"},
+    "claim": {"type": "string"},
+    "archive": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["file", "bytes", "sha256"],
+      "properties": {
+        "file": {"const": "beam-cascade.sqlite3.xz"},
+        "bytes": {"type": "integer", "minimum": 1},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "database": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["bytes", "sha256", "certificates", "maximum_solution_length"],
+      "properties": {
+        "bytes": {"type": "integer", "minimum": 1},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "certificates": {"type": "integer", "minimum": 1},
+        "maximum_solution_length": {"type": "integer", "minimum": 1}
+      }
+    },
+    "exact_reductions": {"type": "integer", "minimum": 0},
+    "raw_compositions": {"type": "integer", "minimum": 1},
+    "certificates_by_beam_width": {
+      "type": "object",
+      "additionalProperties": {"type": "integer", "minimum": 1},
+      "propertyNames": {"pattern": "^[1-9][0-9]*$"}
+    },
+    "checkpoints": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["file", "epoch", "source_sha256", "sha256", "certificates"],
+        "properties": {
+          "file": {"type": "string"},
+          "epoch": {"type": "integer", "minimum": 1},
+          "source_sha256": {"$ref": "#/$defs/sha256"},
+          "sha256": {"$ref": "#/$defs/sha256"},
+          "certificates": {"type": "integer", "minimum": 1}
+        }
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+  }
+}

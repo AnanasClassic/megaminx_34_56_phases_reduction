@@ -1,0 +1,13 @@
+.git
+.venv
+upstream/source
+upstream/downloads
+artifacts
+tables
+hard_states
+compositions
+datasets
+models
+searches
+certificates
+__pycache__

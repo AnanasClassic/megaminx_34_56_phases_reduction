@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -euo pipefail
+ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
+mkdir -p "$ROOT/artifacts/models/pair56"
+exec "$ROOT/scripts/train_pair56" --output-dir "$ROOT/artifacts/models/pair56" "$@"

@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -euo pipefail
+ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+SOURCE=${1:-"$ROOT/../megaminx-transformer/generators/p900.json"}
+OUTPUT=${2:-"$ROOT/training/pair56/problem.json"}
+exec env PYTHONPATH="$ROOT/src" python3 -c \
+  'import json,sys; from pathlib import Path; from mdr.pair56_problem import write_problem; p=write_problem(Path(sys.argv[1]),Path(sys.argv[2])); print(json.dumps({"output":sys.argv[2],"actions":len(p["actions"]),"classes":p["num_classes"],"K_max":p["K_max"]},sort_keys=True))' \
+  "$SOURCE" "$OUTPUT"

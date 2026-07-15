@@ -1,0 +1,91 @@
+{
+  "certificates": {
+    "certificates_by_beam_width": {
+      "1024": 314,
+      "128": 60490,
+      "2048": 23,
+      "256": 17526,
+      "32": 324812,
+      "4096": 1,
+      "512": 2921,
+      "64": 130282
+    },
+    "coverage": 1.0,
+    "database": "certificates/pair34/beam-cascade.sqlite3",
+    "maximum_solution_length": 21,
+    "pair": "pair34",
+    "remaining_representatives_total": 536369,
+    "valid": true,
+    "verified_certificates": 536369
+  },
+  "checksums": {
+    "certificate_database": "e3db339b911987d0ebaa2df791de532317261b335d895bf6eaaf61d7eecf1ded",
+    "checker_source": "d577e11e507f6dae469e24605b93342b5e9557bf68ab5eab75b8e8ee9991c3d1",
+    "composition_metadata": "5bbe043d11910ffdb58cb7e4d5010861574ad60714c2b135e040971d5c47a196",
+    "config": "0fc579e00795bbeacca508605499bcea495501fb7e319d2b9139f45b7128bd34",
+    "problem": "511481163cd9d310669e8fb8600fb547f53c38f6869972f39551dbdba054f175",
+    "reduction_metadata": "92c2ec0b06368cb8f016b79108cf75746c5f290ef4180bfda31feb0c9d018166"
+  },
+  "closed_by_exact_reduction": 203,
+  "composition": {
+    "duplicate_pairs": 0,
+    "maximum_multiplicity": 1,
+    "pair": "pair34",
+    "raw_pairs": 536572,
+    "unique_full_states": 536572,
+    "valid": true,
+    "valid_pairs": 536572
+  },
+  "covered_by_direct_certificate": 536369,
+  "covered_states": 536572,
+  "hard_states": [
+    {
+      "count": 212,
+      "depth": 14,
+      "phase": 3,
+      "valid": true
+    },
+    {
+      "count": 2531,
+      "depth": 8,
+      "phase": 4,
+      "valid": true
+    }
+  ],
+  "invalid_certificates": 0,
+  "maximum_verified_solution_length": 21,
+  "missing_certificates": 0,
+  "pair": "pair34",
+  "phase_pair": "3+4",
+  "proof_summary_sha256": "08411233440edb38e122eab02075620a07ed7f53af21538f8c31bb4f48fa32d5",
+  "raw_states": 536572,
+  "reduction": {
+    "closed": 203,
+    "pair": "pair34",
+    "raw_pairs": 536572,
+    "remaining": 536369,
+    "valid": true
+  },
+  "required_maximum_length": 21,
+  "tables": [
+    {
+      "antipode_count": 212,
+      "diameter": 14,
+      "hard_states_metadata_sha256": "fc38bcb77ec2efb83cba0cefd7d8e3d758cfc1206fd3aa95f3075a6420623ba6",
+      "hard_states_sha256": "fd50ac96f2f2d43a01622887511255022954bffb23312801bc7d393d11909aac",
+      "metadata_sha256": "d62bf997ea98735ed57c30e63d4f69869adbca2c13185186a0bc3aa7f9fbe26f",
+      "phase": 3,
+      "state_count": 208099584
+    },
+    {
+      "antipode_count": 2531,
+      "diameter": 8,
+      "hard_states_metadata_sha256": "48d7528f6536852d915dc38a6a604039ede76c55692495fb31be80ff16f1ce65",
+      "hard_states_sha256": "9ff4ff4fe94713bd49f6282c1c8bba9d30d1accd1ff21d44c38911875a05c10e",
+      "metadata_sha256": "102de0768e040c3e8d76fb3336ff0406696c78d6f9536135170ebf3c6bd9bf4f",
+      "phase": 4,
+      "state_count": 68400
+    }
+  ],
+  "valid": true
+}

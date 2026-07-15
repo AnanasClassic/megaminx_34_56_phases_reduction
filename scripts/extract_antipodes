@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -euo pipefail
+ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+test -x "$ROOT/build/mdr-table" || { echo "error: run make build-table-builder" >&2; exit 2; }
+exec "$ROOT/build/mdr-table" extract "$@"

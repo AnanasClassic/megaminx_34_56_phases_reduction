@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Megaminx phase table metadata",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "phase", "transition", "upstream_commit", "metric", "state_count", "diameter", "antipode_count", "payloads", "complete"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "phase": {"type": "integer", "enum": [3, 4, 5, 6]},
+    "transition": {"type": "string"},
+    "upstream_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "pipeline_commit": {"type": "string"},
+    "config_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "metric": {"const": "FTM"},
+    "state_count": {"type": "integer", "minimum": 1},
+    "diameter": {"type": "integer", "minimum": 0},
+    "antipode_count": {"type": "integer", "minimum": 1},
+    "payloads": {"type": "object", "minProperties": 1},
+    "complete": {"const": true}
+  }
+}

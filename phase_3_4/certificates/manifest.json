@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "pair": "pair34",
+  "metric": "FTM",
+  "claim": "D_(3+4) <= 21",
+  "archive": {
+    "file": "beam-cascade.sqlite3.xz",
+    "bytes": 47815196,
+    "sha256": "6b9281ec58e3d3213def5b3986da93d78a1df570c03d225c3791cdecc46de078"
+  },
+  "database": {
+    "bytes": 97234944,
+    "sha256": "e3db339b911987d0ebaa2df791de532317261b335d895bf6eaaf61d7eecf1ded",
+    "certificates": 536369,
+    "maximum_solution_length": 21
+  },
+  "exact_reductions": 203,
+  "raw_compositions": 536572,
+  "certificates_by_beam_width": {
+    "32": 324812,
+    "64": 130282,
+    "128": 60490,
+    "256": 17526,
+    "512": 2921,
+    "1024": 314,
+    "2048": 23,
+    "4096": 1
+  },
+  "checkpoints": [
+    {
+      "file": "../models/pair34-qmlp-epoch1024.pt",
+      "epoch": 1024,
+      "source_sha256": "dfba36f02cc354283a3d0577d294892047a903a0f3f36de283ab7bea166b469c",
+      "sha256": "3a4b69b9f19e060f17e39e95c6ac0c31633dbe563a55dead0c332bc3cfbdca6e",
+      "certificates": 48463
+    },
+    {
+      "file": "../models/pair34-qmlp-epoch1120.pt",
+      "epoch": 1120,
+      "source_sha256": "6337142150eca987a29783070ab0fd3b944881ab2a66fcee913c799b3d9dad6e",
+      "sha256": "e71cd04c5ba0520f22b6a44d39b36ebb51d33dad6782426d0793bd4d6b4c4cbf",
+      "certificates": 487906
+    }
+  ]
+}

@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+PAIR=${1:?usage: scripts/run_publication_cascade pair34|pair56 [DATABASE]}
+CHUNK=${CHUNK:-10000}
+DEVICE=${DEVICE:-cuda:0}
+AMP=${AMP:-bf16}
+
+case "$PAIR" in
+  pair34)
+    TOTAL=536369
+    DATABASE=${2:-"$ROOT/artifacts/certificates/pair34/beam-cascade.sqlite3"}
+    TEST="$ROOT/scripts/test_pair34"
+    VERIFY="$ROOT/scripts/verify_pair34_solutions"
+    stages=(
+      "$ROOT/phase_3_4/models/pair34-qmlp-epoch1024.pt:32"
+      "$ROOT/phase_3_4/models/pair34-qmlp-epoch1120.pt:32,64,128,256,512,1024,2048,4096"
+    )
+    ;;
+  pair56)
+    TOTAL=399167
+    DATABASE=${2:-"$ROOT/artifacts/certificates/pair56/beam-cascade.sqlite3"}
+    TEST="$ROOT/scripts/test_pair56"
+    VERIFY="$ROOT/scripts/verify_pair56_solutions"
+    stages=(
+      "$ROOT/phase_5_6/models/pair56-qmlp-epoch864.pt:64"
+      "$ROOT/phase_5_6/models/pair56-qmlp-epoch3744.pt:128,256,1024,4096"
+    )
+    ;;
+  *) echo "error: pair must be pair34 or pair56" >&2; exit 2 ;;
+esac
+
+mkdir -p "$(dirname "$DATABASE")"
+
+search_batch_for_beam() {
+  case "$1" in
+    32|64|128|256|512) echo 128 ;;
+    1024) echo 64 ;;
+    2048) echo 32 ;;
+    4096) echo 16 ;;
+    *) echo 16 ;;
+  esac
+}
+
+for stage in "${stages[@]}"; do
+  checkpoint=${stage%%:*}
+  IFS=',' read -r -a beams <<< "${stage#*:}"
+  for beam in "${beams[@]}"; do
+    search_batch=$(search_batch_for_beam "$beam")
+    for ((offset=0; offset<TOTAL; offset+=CHUNK)); do
+      count=$((TOTAL-offset))
+      ((count > CHUNK)) && count=$CHUNK
+      result=$(
+        "$TEST" \
+          --checkpoint "$checkpoint" --device "$DEVICE" --amp "$AMP" \
+          --hard-states "$count" --hard-offset "$offset" \
+          --beam-width "$beam" --search-batch-size "$search_batch" \
+          --max-steps "$([[ $PAIR == pair34 ]] && echo 21 || echo 25)" \
+          --val-size 128 --val-batch-size 128 --solutions-db "$DATABASE"
+      )
+      db_total=$(printf '%s' "$result" | python3 -c 'import json,sys; print(json.load(sys.stdin)["certificate_store"]["certificates"])')
+      printf 'pair=%s beam=%s offset=%s db_total=%s/%s\n' "$PAIR" "$beam" "$offset" "$db_total" "$TOTAL"
+      ((db_total == TOTAL)) && break 3
+    done
+  done
+done
+
+"$VERIFY" --database "$DATABASE"

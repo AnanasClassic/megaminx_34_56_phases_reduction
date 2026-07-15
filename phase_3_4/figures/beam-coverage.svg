@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="500" viewBox="0 0 920 500" role="img" aria-labelledby="title desc">
+<title id="title">Phase 3+4 certificate coverage</title>
+<desc id="desc">Logarithmic bar chart of exact reductions and certificates first found at each beam width.</desc>
+<rect width="100%" height="100%" fill="white"/>
+<text x="460.0" y="28" text-anchor="middle" font-family="sans-serif" font-size="20" font-weight="bold">Phase 3+4 certificate coverage</text>
+<line x1="82" y1="385.00" x2="892" y2="385.00" stroke="#d6d6d6"/>
+<text x="72" y="389.00" text-anchor="end" font-family="sans-serif" font-size="12">10^0</text>
+<line x1="82" y1="330.00" x2="892" y2="330.00" stroke="#d6d6d6"/>
+<text x="72" y="334.00" text-anchor="end" font-family="sans-serif" font-size="12">10^1</text>
+<line x1="82" y1="275.00" x2="892" y2="275.00" stroke="#d6d6d6"/>
+<text x="72" y="279.00" text-anchor="end" font-family="sans-serif" font-size="12">10^2</text>
+<line x1="82" y1="220.00" x2="892" y2="220.00" stroke="#d6d6d6"/>
+<text x="72" y="224.00" text-anchor="end" font-family="sans-serif" font-size="12">10^3</text>
+<line x1="82" y1="165.00" x2="892" y2="165.00" stroke="#d6d6d6"/>
+<text x="72" y="169.00" text-anchor="end" font-family="sans-serif" font-size="12">10^4</text>
+<line x1="82" y1="110.00" x2="892" y2="110.00" stroke="#d6d6d6"/>
+<text x="72" y="114.00" text-anchor="end" font-family="sans-serif" font-size="12">10^5</text>
+<line x1="82" y1="55.00" x2="892" y2="55.00" stroke="#d6d6d6"/>
+<text x="72" y="59.00" text-anchor="end" font-family="sans-serif" font-size="12">10^6</text>
+<line x1="82" y1="55" x2="82" y2="385" stroke="#222"/>
+<line x1="82" y1="385" x2="892" y2="385" stroke="#222"/>
+<rect x="99.10" y="258.09" width="55.80" height="126.91" fill="#d95f02"/>
+<text x="127.00" y="251.09" text-anchor="middle" font-family="sans-serif" font-size="11">203</text>
+<text transform="translate(127.00,397) rotate(45)" text-anchor="start" font-family="sans-serif" font-size="12">exact reduction</text>
+<rect x="189.10" y="81.86" width="55.80" height="303.14" fill="#1f77b4"/>
+<text x="217.00" y="74.86" text-anchor="middle" font-family="sans-serif" font-size="11">324,812</text>
+<text transform="translate(217.00,397) rotate(45)" text-anchor="start" font-family="sans-serif" font-size="12">beam 32</text>
+<rect x="279.10" y="103.68" width="55.80" height="281.32" fill="#1f77b4"/>
+<text x="307.00" y="96.68" text-anchor="middle" font-family="sans-serif" font-size="11">130,282</text>
+<text transform="translate(307.00,397) rotate(45)" text-anchor="start" font-family="sans-serif" font-size="12">beam 64</text>
+<rect x="369.10" y="122.01" width="55.80" height="262.99" fill="#1f77b4"/>
+<text x="397.00" y="115.01" text-anchor="middle" font-family="sans-serif" font-size="11">60,490</text>
+<text transform="translate(397.00,397) rotate(45)" text-anchor="start" font-family="sans-serif" font-size="12">beam 128</text>
+<rect x="459.10" y="151.60" width="55.80" height="233.40" fill="#1f77b4"/>
+<text x="487.00" y="144.60" text-anchor="middle" font-family="sans-serif" font-size="11">17,526</text>
+<text transform="translate(487.00,397) rotate(45)" text-anchor="start" font-family="sans-serif" font-size="12">beam 256</text>
+<rect x="549.10" y="194.40" width="55.80" height="190.60" fill="#1f77b4"/>
+<text x="577.00" y="187.40" text-anchor="middle" font-family="sans-serif" font-size="11">2,921</text>
+<text transform="translate(577.00,397) rotate(45)" text-anchor="start" font-family="sans-serif" font-size="12">beam 512</text>
+<rect x="639.10" y="247.67" width="55.80" height="137.33" fill="#1f77b4"/>
+<text x="667.00" y="240.67" text-anchor="middle" font-family="sans-serif" font-size="11">314</text>
+<text transform="translate(667.00,397) rotate(45)" text-anchor="start" font-family="sans-serif" font-size="12">beam 1024</text>
+<rect x="729.10" y="310.10" width="55.80" height="74.90" fill="#1f77b4"/>
+<text x="757.00" y="303.10" text-anchor="middle" font-family="sans-serif" font-size="11">23</text>
+<text transform="translate(757.00,397) rotate(45)" text-anchor="start" font-family="sans-serif" font-size="12">beam 2048</text>
+<rect x="819.10" y="382.00" width="55.80" height="3.00" fill="#1f77b4"/>
+<text x="847.00" y="375.00" text-anchor="middle" font-family="sans-serif" font-size="11">1</text>
+<text transform="translate(847.00,397) rotate(45)" text-anchor="start" font-family="sans-serif" font-size="12">beam 4096</text>
+<text transform="translate(18,220.0) rotate(-90)" text-anchor="middle" font-family="sans-serif" font-size="13">states (log10 scale)</text>
+</svg>

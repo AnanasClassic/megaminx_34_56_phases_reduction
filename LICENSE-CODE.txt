@@ -1,0 +1,9 @@
+The source code and computational certificate data in this repository are
+made available under the Creative Commons Attribution-NonCommercial 4.0
+International license (CC BY-NC 4.0), consistent with the license of the
+referenced Alexander Botz software dataset.
+
+License text: https://creativecommons.org/licenses/by-nc/4.0/legalcode
+
+Attribution must include this project and Alexander Botz's "A Megaminx Solver"
+software dataset. No endorsement is implied.

@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+PAIR=${1:?usage: scripts/reproduce_pair pair34|pair56}
+WORKERS=${WORKERS:-10}
+
+case "$PAIR" in
+  pair34) phases=(3 4); label=phase_3_4; bound=21; local_faces=7 ;;
+  pair56) phases=(5 6); label=phase_5_6; bound=25; local_faces=12 ;;
+  *) echo "error: pair must be pair34 or pair56" >&2; exit 2 ;;
+esac
+
+cd "$ROOT"
+make build-verifier build-table-builder
+python3 scripts/unpack_publication_certificate.py "$PAIR"
+
+for phase in "${phases[@]}"; do
+  scripts/build_tables --phase "$phase" --out "tables/phase$phase" --workers "$WORKERS"
+  diameter=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["diameter"])' "tables/phase$phase/metadata.json")
+  scripts/extract_antipodes --phase "$phase" --table "tables/phase$phase" --out "hard_states/phase${phase}_depth${diameter}.bin"
+done
+
+hard_a=$(find hard_states -maxdepth 1 -name "phase${phases[0]}_depth*.bin" -print -quit)
+hard_b=$(find hard_states -maxdepth 1 -name "phase${phases[1]}_depth*.bin" -print -quit)
+scripts/compose_pairs --pair "$PAIR" --hard-a "$hard_a" --hard-b "$hard_b" --out "compositions/$PAIR"
+MDR_LOCAL_FACE_COUNT="$local_faces" scripts/canonicalize --pair "$PAIR" --hard-a "$hard_a" --hard-b "$hard_b" --out "reductions/$PAIR"
+mkdir -p artifacts/reports
+scripts/certify "$PAIR" --max-length "$bound" --database "certificates/$PAIR/beam-cascade.sqlite3" --report "artifacts/reports/$PAIR.json"
+echo "$PAIR FULL REPRODUCTION COMPLETE"

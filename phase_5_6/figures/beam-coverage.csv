@@ -1,0 +1,7 @@
+method,count
+exact reduction,8461
+beam 64,235840
+beam 128,139544
+beam 256,19689
+beam 1024,4066
+beam 4096,28

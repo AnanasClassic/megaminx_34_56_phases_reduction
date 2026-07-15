@@ -1,0 +1,80 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+CHECKPOINT=${1:?usage: run_pair34_beam_cascade CHECKPOINT [DATABASE]}
+DATABASE=${2:-"$ROOT/certificates/pair34/beam-cascade.sqlite3"}
+TOTAL=${TOTAL:-536369}
+CHUNK=${CHUNK:-10000}
+BEAMS=${BEAMS:-"32 64 128 256 512 1024 2048 4096"}
+DEVICE=${DEVICE:-cuda:0}
+AMP=${AMP:-bf16}
+
+case "$CHECKPOINT" in
+  /*) ;;
+  *) CHECKPOINT="$PWD/$CHECKPOINT" ;;
+esac
+case "$DATABASE" in
+  /*) ;;
+  *) DATABASE="$PWD/$DATABASE" ;;
+esac
+
+if [[ ! -f "$CHECKPOINT" ]]; then
+  echo "error: checkpoint does not exist: $CHECKPOINT" >&2
+  exit 2
+fi
+mkdir -p "$(dirname "$DATABASE")"
+
+search_batch_for_beam() {
+  case "$1" in
+    32|64|128|256|512) echo 128 ;;
+    1024) echo 64 ;;
+    2048) echo 32 ;;
+    4096) echo 16 ;;
+    *) echo 16 ;;
+  esac
+}
+
+echo "pair34 cascade start checkpoint=$CHECKPOINT database=$DATABASE beams=$BEAMS device=$DEVICE amp=$AMP"
+complete=0
+for beam in $BEAMS; do
+  search_batch=$(search_batch_for_beam "$beam")
+  echo "beam=$beam stage=start search_batch=$search_batch"
+  for ((offset=0; offset<TOTAL; offset+=CHUNK)); do
+    count=$((TOTAL - offset))
+    ((count > CHUNK)) && count=$CHUNK
+
+    result=$(
+      "$ROOT/scripts/test_pair34" \
+        --checkpoint "$CHECKPOINT" \
+        --device "$DEVICE" --amp "$AMP" \
+        --hard-states "$count" --hard-offset "$offset" \
+        --beam-width "$beam" --search-batch-size "$search_batch" \
+        --max-steps 21 \
+        --val-size 128 --val-batch-size 128 \
+        --solutions-db "$DATABASE"
+    )
+    echo "$result" | jq -r --arg beam "$beam" --arg offset "$offset" '
+      "beam=\($beam) offset=\($offset) requested=\(.hard_states_tested)" +
+      " covered=\(.solved) searched=\(.states_searched) new=\(.solved_new)" +
+      " db_total=\(.certificate_store.certificates) time=\(.elapsed_seconds)s" +
+      " speed=\(.states_per_second)"
+    '
+    db_total=$(echo "$result" | jq -r '.certificate_store.certificates')
+    if ((db_total == TOTAL)); then
+      complete=1
+      echo "beam=$beam stage=complete all=$TOTAL"
+      break
+    fi
+  done
+  ((complete)) && break
+  echo "beam=$beam stage=complete db_total=$db_total remaining=$((TOTAL - db_total))"
+done
+
+echo "independent verification start"
+"$ROOT/scripts/verify_pair34_solutions" --database "$DATABASE"
+if ((complete)); then
+  echo "pair34 cascade complete coverage=$TOTAL/$TOTAL"
+else
+  echo "pair34 cascade exhausted db_total=$db_total remaining=$((TOTAL - db_total))"
+fi

@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -euo pipefail
+ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+test -x "$ROOT/build/mdr-verify" || { echo "error: run make build-verifier" >&2; exit 2; }
+exec "$ROOT/build/mdr-verify" phase-index "$@"

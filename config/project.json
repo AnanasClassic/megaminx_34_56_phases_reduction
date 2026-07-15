@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "metric": {
+    "name": "FTM",
+    "faces": ["U", "R", "F", "L", "BR", "BL", "FR", "FL", "DR", "DL", "B", "D"],
+    "powers": [1, 2, 3, 4],
+    "cost_per_non_identity_face_turn": 1,
+    "composition_order": "tokens are applied left-to-right"
+  },
+  "upstream": {
+    "deposit_url": "https://tudatalib.ulb.tu-darmstadt.de/items/df505085-2ccb-43e2-9679-9bbf1dbf192f",
+    "archive_url": "https://tudatalib.ulb.tu-darmstadt.de/bitstreams/ddf7dced-8274-4063-8a9f-eae2c1891cad/download",
+    "archive_sha256": "1aa7a2f033a0d20c23ab5b7f014e77013a71b05593310cec28eaf2bc6091c6cb",
+    "branch": "Original-Order",
+    "commit": "82db40b5744297617446da888cd73d5e26f57239",
+    "source_subdirectory": "Original Order",
+    "go_version": "1.22.3"
+  },
+  "phases": {
+    "3": {"transition": "G5->G6", "upstream_table": "7Gen", "state_count": 208099584, "expected_diameter": 14, "expected_antipodes": 212},
+    "4": {"transition": "G6->G7", "upstream_table": "6Gen", "state_count": 68400, "storage_slots": 103224, "expected_diameter": 8, "expected_antipodes": 2531},
+    "5": {"transition": "G7->G8", "upstream_table": "5Gen", "state_count": 64157184, "expected_diameter": 13, "expected_antipodes": 3484},
+    "6": {"transition": "G8->G9", "upstream_table": "4Gen", "state_count": 25945920, "expected_diameter": 13, "expected_antipodes": 117}
+  },
+  "pairs": {
+    "pair34": {"phases": [3, 4], "expected_raw_pairs": 536572, "max_length": 21},
+    "pair56": {"phases": [5, 6], "expected_raw_pairs": 407628, "max_length": 25}
+  },
+  "resource_policy": {
+    "minimum_free_gib": 12,
+    "maximum_project_gib": 10,
+    "maximum_workers": 10,
+    "cpu_nice": 10,
+    "io_priority_class": "best-effort",
+    "io_priority_level": 7,
+    "atomic_publication": true,
+    "single_writer": true
+  }
+}
