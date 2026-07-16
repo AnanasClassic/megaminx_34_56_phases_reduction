@@ -24,31 +24,33 @@ states. The maximum independently replayed word length is 21.
 
 ![Log-scale certificate coverage by exact reduction and beam width](figures/beam-coverage.svg)
 
-| First successful method | States | Search throughput (states/s) | Estimated full pass |
-|---|---:|---:|---:|
-| Exact reduction, no model | 203 | — | — |
-| Beam 32 | 324,812 | 112.4 | 1 h 19 m 30 s |
-| Beam 64 | 130,282 | 137.0 | 1 h 05 m 15 s |
-| Beam 128 | 60,490 | 88.3 | 1 h 41 m 17 s |
-| Beam 256 | 17,526 | 40.9 | 3 h 38 m 40 s |
-| Beam 512 | 2,921 | 18.9 | 7 h 52 m 08 s |
-| Beam 1024 | 314 | 7.2 | 20 h 39 m 47 s |
-| Beam 2048 | 23 | 1.5† | 4 d 04 h 44 m† |
-| Beam 4096 | 1 | 1.8† | 3 d 12 h 28 m† |
+| Stage | Candidates before stage | Newly certified | Remaining | Throughput (states/s) | Actual search time |
+|---|---:|---:|---:|---:|---:|
+| Exact reduction, no model | 536,572 | 203 | 536,369 | — | — |
+| Beam 32 | 536,369 | 324,812 | 211,557 | 109.2* | 1 h 28 m 13 s* |
+| Beam 64 | 211,557 | 130,282 | 81,275 | 137.0 | 25 m 44 s |
+| Beam 128 | 81,275 | 60,490 | 20,785 | 88.3 | 15 m 21 s |
+| Beam 256 | 20,785 | 17,526 | 3,259 | 40.9 | 8 m 28 s |
+| Beam 512 | 3,259 | 2,921 | 338 | 18.9 | 2 m 52 s |
+| Beam 1024 | 338 | 314 | 24 | 7.2 | 46.9 s |
+| Beam 2048 | 24 | 23 | 1 | 1.5† | 16.2 s |
+| Beam 4096 | 1 | 1 | 0 | 1.8† | 0.6 s |
 
 The beam width records search provenance only. It is not trusted by the proof.
-Throughput is the aggregate rate for representatives actually submitted to the
-model, excluding representatives already covered by an earlier cascade stage.
+Each beam searches only the representatives left by the preceding row. Search
+time is the evaluator's measured model-search time; it excludes process startup,
+validation, database-only skips, pauses, and final independent verification.
 Measurements used an NVIDIA A100 80GB PCIe GPU with CUDA/bfloat16 inference.
-The full-pass column extrapolates that rate to all 536,369 model-searched
-representatives. It is a capacity estimate, not the duration of the cascading
-proof run. †The last two rates are based on only 24 and one searched
-representative respectively, so their extrapolations have high uncertainty.
+*Beam 32 combines the earlier epoch-1024 partial seed pass (48,463 certificates)
+and the epoch-1120 pass; the seed duration is reconstructed from certificate
+timestamps. †The last two rates are based on only 24 and one searched
+representative respectively and are not stable throughput benchmarks.
 
-**Observed complete model-discovery window:** 4 h 37 m 47 s from the first to
-the last stored model certificate. This wall-clock interval includes the
-earlier 48,463-certificate seed run and inter-process overhead, but excludes
-table construction, exact reduction, and final independent replay.
+**Total active model-search time:** approximately 2 h 21 m 42 s. The complete
+wall-clock discovery window was 4 h 37 m 47 s from the first to the last stored
+model certificate; the difference is process overhead and the gap between the
+seed and main runs. Both totals exclude table construction, exact reduction,
+and final independent replay.
 
 ## Certificate format
 

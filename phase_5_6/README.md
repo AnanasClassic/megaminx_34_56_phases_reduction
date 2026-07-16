@@ -24,30 +24,32 @@ states without a model. The SQLite database contains bounded words for all
 
 ![Log-scale certificate coverage by exact reduction and beam width](figures/beam-coverage.svg)
 
-| First successful method | States | Search throughput (states/s) | Estimated full pass |
-|---|---:|---:|---:|
-| Exact reduction, no model | 8,461 | — | — |
-| Beam 64 | 235,840 | 37.9* | 2 h 55 m 41 s* |
-| Beam 128 | 139,544 | 67.2 | 1 h 38 m 56 s |
-| Beam 256 | 19,689 | 41.1 | 2 h 41 m 40 s |
-| Beam 1024 | 4,066 | 10.3 | 10 h 45 m 16 s |
-| Beam 4096 | 28 | 2.1† | 2 d 04 h 44 m† |
+| Stage | Candidates before stage | Newly certified | Remaining | Throughput (states/s) | Actual search time |
+|---|---:|---:|---:|---:|---:|
+| Exact reduction, no model | 407,628 | 8,461 | 399,167 | — | — |
+| Beam 64 | 399,167 | 235,840 | 163,327 | 37.9* | 2 h 55 m 41 s* |
+| Beam 128 | 163,327 | 139,544 | 23,783 | 67.2 | 40 m 29 s |
+| Beam 256 | 23,783 | 19,689 | 4,094 | 41.1* | ~10 m 44 s* |
+| Beam 1024 | 4,094 | 4,066 | 28 | 10.3 | 6 m 37 s |
+| Beam 4096 | 28 | 28 | 0 | 2.1† | 13.3 s |
 
 The beam width records search provenance only. It is not trusted by the proof.
-Throughput is the measured rate for representatives actually submitted to the
-model, excluding representatives already covered by an earlier cascade stage.
+Each beam searches only the representatives left by the preceding row. Search
+time is the evaluator's measured model-search time; it excludes process startup,
+validation, database-only skips, pauses, and final independent verification.
 Measurements used an NVIDIA A100 80GB PCIe GPU with CUDA/bfloat16 inference.
-The full-pass column extrapolates that rate to all 399,167 model-searched
-representatives. It is a capacity estimate, not the duration of the cascading
-proof run. *Beam 64 used the older low-batch implementation; its approximate
-rate is reconstructed from the first and last certificate timestamps and is
-not directly comparable with the later batched measurements. †Beam 4096 was
-measured on only 28 representatives, so its extrapolation has high uncertainty.
+*Beam 64 used the older low-batch implementation; its duration and approximate
+rate are reconstructed from certificate timestamps and are not directly
+comparable with the later batched measurements. Beam 256 was interrupted and
+resumed; its time combines the first active certificate interval with the
+measured restart. †Beam 4096 was measured on only 28 representatives and is not
+a stable throughput benchmark.
 
-**Observed complete model-discovery window:** 5 h 45 m 19 s from the first to
-the last stored model certificate. This wall-clock interval includes the
-interrupted/restarted beam-256 stage and inter-process gaps, but excludes table
-construction, exact reduction, and final independent replay.
+**Total active model-search time:** approximately 3 h 53 m 44 s. The complete
+wall-clock discovery window was 5 h 45 m 19 s from the first to the last stored
+model certificate; the difference includes the interrupted beam-256 gap and
+inter-process overhead. Both totals exclude table construction, exact reduction,
+and final independent replay.
 
 ## Certificate format
 
