@@ -36,21 +36,28 @@ states. The maximum independently replayed word length is 21.
 | Beam 2048 | 24 | 23 | 1 | 1.5† | 16.2 s |
 | Beam 4096 | 1 | 1 | 0 | 1.8† | 0.6 s |
 
-The beam width records search provenance only. It is not trusted by the proof.
-Each beam searches only the representatives left by the preceding row. Search
-time is the evaluator's measured model-search time; it excludes process startup,
-validation, database-only skips, pauses, and final independent verification.
-Measurements used an NVIDIA A100 80GB PCIe GPU with CUDA/bfloat16 inference.
-*Beam 32 combines the earlier epoch-1024 partial seed pass (48,463 certificates)
-and the epoch-1120 pass; the seed duration is reconstructed from certificate
-timestamps. †The last two rates are based on only 24 and one searched
-representative respectively and are not stable throughput benchmarks.
+### Timing notes
 
-**Total active model-search time:** approximately 2 h 21 m 42 s. The complete
-wall-clock discovery window was 4 h 37 m 47 s from the first to the last stored
-model certificate; the difference is process overhead and the gap between the
-seed and main runs. Both totals exclude table construction, exact reduction,
-and final independent replay.
+- Each beam searches only the representatives left by the preceding row.
+- Search time is measured model-search time. It excludes process startup,
+  validation, database-only skips, pauses, and independent verification.
+- Hardware: NVIDIA A100 80GB PCIe, CUDA/bfloat16 inference.
+- `*` Beam 32 combines an initial partial epoch-1024 pass (48,463
+  certificates) and the epoch-1120 pass. These are checkpoints from the same
+  training run; the initial-pass duration is reconstructed from certificate
+  timestamps.
+- `†` The last two rates are based on only 24 and one searched representative
+  respectively and are not stable throughput benchmarks.
+
+### Total timing
+
+- Active model search: approximately **2 h 21 m 42 s**.
+- First-to-last certificate wall time: **4 h 37 m 47 s**, including process
+  overhead and the gap between the initial and main passes.
+- Both totals exclude table construction, exact reduction, and final
+  independent replay.
+
+The beam width records search provenance only. It is not trusted by the proof.
 
 ## Certificate format
 

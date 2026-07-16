@@ -33,23 +33,29 @@ states without a model. The SQLite database contains bounded words for all
 | Beam 1024 | 4,094 | 4,066 | 28 | 10.3 | 6 m 37 s |
 | Beam 4096 | 28 | 28 | 0 | 2.1† | 13.3 s |
 
-The beam width records search provenance only. It is not trusted by the proof.
-Each beam searches only the representatives left by the preceding row. Search
-time is the evaluator's measured model-search time; it excludes process startup,
-validation, database-only skips, pauses, and final independent verification.
-Measurements used an NVIDIA A100 80GB PCIe GPU with CUDA/bfloat16 inference.
-*Beam 64 used the older low-batch implementation; its duration and approximate
-rate are reconstructed from certificate timestamps and are not directly
-comparable with the later batched measurements. Beam 256 was interrupted and
-resumed; its time combines the first active certificate interval with the
-measured restart. †Beam 4096 was measured on only 28 representatives and is not
-a stable throughput benchmark.
+### Timing notes
 
-**Total active model-search time:** approximately 3 h 53 m 44 s. The complete
-wall-clock discovery window was 5 h 45 m 19 s from the first to the last stored
-model certificate; the difference includes the interrupted beam-256 gap and
-inter-process overhead. Both totals exclude table construction, exact reduction,
-and final independent replay.
+- Each beam searches only the representatives left by the preceding row.
+- Search time is measured model-search time. It excludes process startup,
+  validation, database-only skips, pauses, and independent verification.
+- Hardware: NVIDIA A100 80GB PCIe, CUDA/bfloat16 inference.
+- `*` Beam 64 used the older low-batch implementation. Its duration and rate
+  are reconstructed from certificate timestamps and are not directly
+  comparable with the later batched measurements.
+- `*` Beam 256 was interrupted and resumed. Its time combines the first active
+  certificate interval with the measured restart.
+- `†` Beam 4096 was measured on only 28 representatives and is not a stable
+  throughput benchmark.
+
+### Total timing
+
+- Active model search: approximately **3 h 53 m 44 s**.
+- First-to-last certificate wall time: **5 h 45 m 19 s**, including the
+  interrupted beam-256 gap and inter-process overhead.
+- Both totals exclude table construction, exact reduction, and final
+  independent replay.
+
+The beam width records search provenance only. It is not trusted by the proof.
 
 ## Certificate format
 
