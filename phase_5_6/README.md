@@ -24,16 +24,30 @@ states without a model. The SQLite database contains bounded words for all
 
 ![Log-scale certificate coverage by exact reduction and beam width](figures/beam-coverage.svg)
 
-| First successful method | States |
-|---|---:|
-| Exact reduction, no model | 8,461 |
-| Beam 64 | 235,840 |
-| Beam 128 | 139,544 |
-| Beam 256 | 19,689 |
-| Beam 1024 | 4,066 |
-| Beam 4096 | 28 |
+| First successful method | States | Search throughput (states/s) | Estimated full pass |
+|---|---:|---:|---:|
+| Exact reduction, no model | 8,461 | — | — |
+| Beam 64 | 235,840 | 37.9* | 2 h 55 m 41 s* |
+| Beam 128 | 139,544 | 67.2 | 1 h 38 m 56 s |
+| Beam 256 | 19,689 | 41.1 | 2 h 41 m 40 s |
+| Beam 1024 | 4,066 | 10.3 | 10 h 45 m 16 s |
+| Beam 4096 | 28 | 2.1† | 2 d 04 h 44 m† |
 
 The beam width records search provenance only. It is not trusted by the proof.
+Throughput is the measured rate for representatives actually submitted to the
+model, excluding representatives already covered by an earlier cascade stage.
+Measurements used an NVIDIA A100 80GB PCIe GPU with CUDA/bfloat16 inference.
+The full-pass column extrapolates that rate to all 399,167 model-searched
+representatives. It is a capacity estimate, not the duration of the cascading
+proof run. *Beam 64 used the older low-batch implementation; its approximate
+rate is reconstructed from the first and last certificate timestamps and is
+not directly comparable with the later batched measurements. †Beam 4096 was
+measured on only 28 representatives, so its extrapolation has high uncertainty.
+
+**Observed complete model-discovery window:** 5 h 45 m 19 s from the first to
+the last stored model certificate. This wall-clock interval includes the
+interrupted/restarted beam-256 stage and inter-process gaps, but excludes table
+construction, exact reduction, and final independent replay.
 
 ## Certificate format
 

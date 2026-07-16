@@ -24,19 +24,31 @@ states. The maximum independently replayed word length is 21.
 
 ![Log-scale certificate coverage by exact reduction and beam width](figures/beam-coverage.svg)
 
-| First successful method | States |
-|---|---:|
-| Exact reduction, no model | 203 |
-| Beam 32 | 324,812 |
-| Beam 64 | 130,282 |
-| Beam 128 | 60,490 |
-| Beam 256 | 17,526 |
-| Beam 512 | 2,921 |
-| Beam 1024 | 314 |
-| Beam 2048 | 23 |
-| Beam 4096 | 1 |
+| First successful method | States | Search throughput (states/s) | Estimated full pass |
+|---|---:|---:|---:|
+| Exact reduction, no model | 203 | — | — |
+| Beam 32 | 324,812 | 112.4 | 1 h 19 m 30 s |
+| Beam 64 | 130,282 | 137.0 | 1 h 05 m 15 s |
+| Beam 128 | 60,490 | 88.3 | 1 h 41 m 17 s |
+| Beam 256 | 17,526 | 40.9 | 3 h 38 m 40 s |
+| Beam 512 | 2,921 | 18.9 | 7 h 52 m 08 s |
+| Beam 1024 | 314 | 7.2 | 20 h 39 m 47 s |
+| Beam 2048 | 23 | 1.5† | 4 d 04 h 44 m† |
+| Beam 4096 | 1 | 1.8† | 3 d 12 h 28 m† |
 
 The beam width records search provenance only. It is not trusted by the proof.
+Throughput is the aggregate rate for representatives actually submitted to the
+model, excluding representatives already covered by an earlier cascade stage.
+Measurements used an NVIDIA A100 80GB PCIe GPU with CUDA/bfloat16 inference.
+The full-pass column extrapolates that rate to all 536,369 model-searched
+representatives. It is a capacity estimate, not the duration of the cascading
+proof run. †The last two rates are based on only 24 and one searched
+representative respectively, so their extrapolations have high uncertainty.
+
+**Observed complete model-discovery window:** 4 h 37 m 47 s from the first to
+the last stored model certificate. This wall-clock interval includes the
+earlier 48,463-certificate seed run and inter-process overhead, but excludes
+table construction, exact reduction, and final independent replay.
 
 ## Certificate format
 
