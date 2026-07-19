@@ -17,6 +17,11 @@ command -v rg >/dev/null 2>&1 || {
 cd "$PAPER"
 latexmk -pdf -interaction=nonstopmode -halt-on-error -file-line-error main.tex
 
+if [[ ! -s main.pdf ]] || ! tail -c 1024 main.pdf | rg -a -q '%%EOF'; then
+  echo "error: paper/main.pdf is empty or truncated" >&2
+  exit 2
+fi
+
 if rg -n \
   'LaTeX Warning:.*undefined|Citation .* undefined|Reference .* undefined|There were undefined references|Overfull \\hbox|Overfull \\vbox' \
   main.log; then
@@ -30,4 +35,8 @@ fi
 
 mkdir -p "$(dirname "$OUTPUT")"
 cp main.pdf "$OUTPUT"
+if ! cmp -s main.pdf "$OUTPUT" || ! tail -c 1024 "$OUTPUT" | rg -a -q '%%EOF'; then
+  echo "error: copied PDF differs from paper/main.pdf or is truncated" >&2
+  exit 2
+fi
 echo "paper built: ${OUTPUT#$ROOT/}"
