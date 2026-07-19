@@ -1,0 +1,113 @@
+\section{Introduction}
+\label{sec:introduction}
+
+The Megaminx is a face-turning permutation puzzle with $12$ pentagonal faces,
+$20$ movable corners, and $30$ movable edges.  Its state space is too large for
+a direct breadth-first computation of the maximum solution length.  As in the
+largest certified computations for the Rubik's Cube, useful upper bounds are
+therefore obtained by decomposing the solve along a subgroup chain and
+certifying the worst-case cost of each transition
+\cite{korf1997,kunkle2007,rokicki2013}.
+
+The phase chain studied here was developed in the public Megaminx solver of
+Botz~\cite{botz2026dataset}.  In the face-turn metric, its separately computed
+phase bounds include the consecutive pairs
+\[
+  14+8=22
+  \qquad\text{and}\qquad
+  13+13=26.
+\]
+The complete externally reported chain has length $114$.  This paper does not
+reconstruct the computations outside the two phase pairs considered below;
+consequences for that global value are therefore stated conditionally.
+
+Our starting point is a simple boundary-layer observation.  To lower a sum $a+b$
+of two integer-valued phase bounds to $a+b-1$, every state for which at least
+one constituent phase has distance below its maximum is already harmless.
+Only states whose two coordinates are simultaneously maximal require new
+solutions.  For phases 3 and 4 this boundary consists of physical lifts of the
+Cartesian product
+of $212$ and $2{,}531$ coordinates; for phases 5 and 6 it is a product of
+$3{,}484$ and $117$ coordinates.  Thus two combined quotients containing
+roughly $1.42\times10^{13}$ and $1.66\times10^{15}$ coordinates reduce to
+$536{,}572$ and $407{,}628$ explicit proof obligations.
+
+Closing nearly one million individually specified obligations remains a
+substantial search problem.  We train compact neural models directly on the
+two combined quotients using sparse supervision from random trajectories.
+The models rank actions inside one beam per root, evaluated in batches across
+many roots on a GPU.  A staged schedule applies narrow beams to the
+full unresolved set and reserves wider beams for the diminishing survivor
+tail.  Exact local rewriting closes $8{,}664$ states, and the neural-guided
+search produces bounded words for the remaining $935{,}536$ in approximately
+$6.25$ active A100 GPU-hours.  This aggregate excludes model training, phase
+tables, exact rewriting, process gaps, and final replay.
+
+The neural computation is deliberately outside the trusted proof base.  A
+checkpoint need not estimate a true distance, and an individual beam search
+need not be complete.  The proof uses only the resulting words: the checker
+requires an exact partition of the exhaustive frontier, binds every record to
+its physical state, enforces the pair-specific length limit, and replays every
+direct word without loading a model.  This yields the certified ambient-FTM
+upper bounds
+\[
+  \Gpair{5}{7}\le21,
+  \qquad
+  \Gpair{7}{9}\le25.
+\]
+
+The contributions are therefore:
+\begin{enumerate}
+  \item a general boundary-layer reduction for improving two consecutive
+    subgroup phases by one move;
+  \item complete physical constructions of the two simultaneous-maximal
+    frontiers, including exact lifting and coordinate round trips;
+  \item a proof-oriented neural beam cascade that generates independently
+    checkable words for a fixed exhaustive worst-case frontier rather
+    than a sampled test distribution; and
+  \item deterministic certificate checks establishing the two local
+    bounds and, conditional on the reported surrounding phase chain, the
+    global reductions $114\to112$ and $114\to111$ when combined with the
+    separate color-neutral first-phase result.
+\end{enumerate}
+
+We do not claim a new generic beam-search algorithm, exact combined distances,
+or ordinary graph diameters.  In particular, combined paths are allowed to
+leave their source subgroups under the full FTM move alphabet.  The
+mathematical result is exhaustive coverage by bounded words; the learned
+search is an effective way of discovering those words.
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[
+  node distance=5.5mm and 8mm,
+  box/.style={draw,rounded corners,align=center,minimum height=8mm,
+              text width=31mm,font=\small},
+  checked/.style={box,fill=blue!6},
+  proposer/.style={box,fill=orange!10,draw=orange!70!black},
+  arrow/.style={-{Latex[length=2mm]},thick}
+]
+  \node[checked] (tables) {phase tables\\and maximal layers};
+  \node[checked,below=of tables] (frontier) {physical double-max\\frontier};
+  \node[proposer,below left=of frontier] (rewrite) {local-rewrite\\generator};
+  \node[proposer,below right=of frontier] (neural) {neural-guided\\beam cascade};
+  \node[checked,below=27mm of frontier] (certs) {bounded word\\certificates};
+  \node[checked,below=of certs] (replay) {coverage checks\\and physical replay};
+  \node[checked,below=of replay] (bounds) {certified pair\\upper bounds};
+  \draw[arrow] (tables)--(frontier);
+  \draw[arrow] (frontier)--(rewrite);
+  \draw[arrow] (frontier)--(neural);
+  \draw[arrow] (rewrite)--(certs);
+  \draw[arrow] (neural)--(certs);
+  \draw[arrow] (certs)--(replay);
+  \draw[arrow] (replay)--(bounds);
+  \node[draw=orange!70!black,dashed,rounded corners,fit=(rewrite)(neural),
+        inner sep=2mm,
+        label={[font=\footnotesize,text=orange!70!black]right:untrusted proposal}] {};
+\end{tikzpicture}
+\caption{Proof pipeline and trust boundary.  Both search procedures propose
+words; neither procedure is trusted.  The proof consumes only the exhaustive
+frontier, the stored words, and the results of deterministic coverage and
+replay checks.}
+\label{fig:proof-pipeline}
+\end{figure}

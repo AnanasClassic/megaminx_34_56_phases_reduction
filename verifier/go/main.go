@@ -1,13 +1,17 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
 	"os"
 	"sort"
+	"strconv"
 	"strings"
 )
 
@@ -307,6 +311,97 @@ func runVerify(arguments []string) error {
 	return nil
 }
 
+func runVerifyBatch(arguments []string) error {
+	flags := flag.NewFlagSet("verify-batch", flag.ContinueOnError)
+	target := flags.String("target", "solved", "solved or g5..g9")
+	maxLength := flags.Int("max-length", -1, "maximum FTM length")
+	if err := flags.Parse(arguments); err != nil { return err }
+	if *maxLength < 0 || flags.NArg() != 0 {
+		return errors.New("verify-batch requires a nonnegative --max-length and no positional arguments")
+	}
+	normalizedTarget := strings.ToLower(*target)
+	if normalizedTarget != "solved" {
+		if _, err := subgroupFaces(normalizedTarget); err != nil { return err }
+	}
+
+	// Each stdin line is: decimal state ID, tab, FullStateV1 hex, tab,
+	// canonical move word.  IDs must be strictly increasing, allowing the
+	// Python database checker and this independent replay to agree on an exact
+	// record count without giving the Go implementation SQLite dependencies.
+	scanner := bufio.NewScanner(os.Stdin)
+	// Unlike bufio.ScanLines, this splitter preserves carriage returns and
+	// rejects an unterminated final record.  The accepted transcript is thus a
+	// canonical byte sequence: every record ends in exactly one LF byte.
+	scanner.Split(func(data []byte, atEOF bool) (advance int, token []byte, err error) {
+		if index := bytes.IndexByte(data, '\n'); index >= 0 {
+			return index + 1, data[:index], nil
+		}
+		if atEOF && len(data) != 0 {
+			return 0, nil, errors.New("unterminated final batch record")
+		}
+		return 0, nil, nil
+	})
+	scanner.Buffer(make([]byte, 4096), 1024*1024)
+	records := 0
+	maximum := 0
+	var previousID uint64
+	var firstID uint64
+	havePrevious := false
+	transcript := sha256.New()
+	for scanner.Scan() {
+		line := scanner.Bytes()
+		fields := strings.Split(string(line), "\t")
+		if len(fields) != 3 {
+			return fmt.Errorf("batch record %d must have three tab-separated fields", records+1)
+		}
+		stateID, err := strconv.ParseUint(fields[0], 10, 64)
+		if err != nil { return fmt.Errorf("batch record %d has invalid state ID: %w", records+1, err) }
+		if havePrevious && stateID <= previousID {
+			return fmt.Errorf("batch state IDs are not strictly increasing at %d", stateID)
+		}
+		stateData, err := hex.DecodeString(fields[1])
+		if err != nil { return fmt.Errorf("batch state %d has invalid hex: %w", stateID, err) }
+		state, err := decodeState(stateData)
+		if err != nil { return fmt.Errorf("batch state %d is invalid: %w", stateID, err) }
+		word, err := parseStrictWord([]byte(fields[2]))
+		if err != nil { return fmt.Errorf("batch state %d has invalid word: %w", stateID, err) }
+		if len(word) > *maxLength {
+			return fmt.Errorf("batch state %d solution length %d exceeds bound %d", stateID, len(word), *maxLength)
+		}
+		state, err = applyWord(state, word)
+		if err != nil { return fmt.Errorf("batch state %d replay failed: %w", stateID, err) }
+		ok, err := inTarget(state, normalizedTarget)
+		if err != nil { return fmt.Errorf("batch state %d target check failed: %w", stateID, err) }
+		if !ok { return fmt.Errorf("batch state %d does not reach target %s", stateID, normalizedTarget) }
+		if len(word) > maximum { maximum = len(word) }
+		if !havePrevious { firstID = stateID }
+		previousID = stateID
+		havePrevious = true
+		_, _ = transcript.Write(line)
+		_, _ = transcript.Write([]byte{'\n'})
+		records++
+	}
+	if err := scanner.Err(); err != nil { return fmt.Errorf("cannot read batch stream: %w", err) }
+	var maximumOutput any
+	var firstIDOutput any
+	var lastIDOutput any
+	if records > 0 { maximumOutput = maximum }
+	if records > 0 { firstIDOutput = firstID; lastIDOutput = previousID }
+	output := map[string]any{
+		"valid": true,
+		"records": records,
+		"maximum_solution_length": maximumOutput,
+		"target": normalizedTarget,
+		"max_length": *maxLength,
+		"first_state_id": firstIDOutput,
+		"last_state_id": lastIDOutput,
+		"transcript_sha256": fmt.Sprintf("%x", transcript.Sum(nil)),
+	}
+	encoded, _ := json.Marshal(output)
+	fmt.Println(string(encoded))
+	return nil
+}
+
 func runInspect(arguments []string) error {
 	flags := flag.NewFlagSet("inspect", flag.ContinueOnError)
 	statePath := flags.String("state", "", "FullStateV1 input")
@@ -358,12 +453,13 @@ func runExport(arguments []string) error {
 }
 
 func main() {
-	if len(os.Args) < 2 { fmt.Fprintln(os.Stderr, "usage: mdr-verify <make-state|apply|verify|inspect|phase-index|export-moves>"); os.Exit(2) }
+	if len(os.Args) < 2 { fmt.Fprintln(os.Stderr, "usage: mdr-verify <make-state|apply|verify|verify-batch|inspect|phase-index|export-moves>"); os.Exit(2) }
 	var err error
 	switch os.Args[1] {
 	case "make-state": err = runMakeState(os.Args[2:])
 	case "apply": err = runApply(os.Args[2:])
 	case "verify": err = runVerify(os.Args[2:])
+	case "verify-batch": err = runVerifyBatch(os.Args[2:])
 	case "inspect": err = runInspect(os.Args[2:])
 	case "phase-index": err = runPhaseIndex(os.Args[2:])
 	case "export-moves": err = runExport(os.Args[2:])

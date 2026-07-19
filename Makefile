@@ -1,6 +1,6 @@
 PYTHON ?= python3
 
-.PHONY: bootstrap build build-verifier build-table-builder test verifier-test pair56-smoke pair34-smoke validate doctor verify-package audit-tree prepare-pair34 prepare-pair56 verify-pair34 verify-pair56 verify-all figures clean
+.PHONY: bootstrap build build-verifier build-table-builder test verifier-test pair56-smoke pair34-smoke validate doctor verify-package audit-tree prepare-pair34 prepare-pair56 verify-pair34 verify-pair56 verify-all figures paper clean
 
 bootstrap:
 	./environment/fetch_upstream.sh
@@ -55,6 +55,9 @@ verify-all: verify-pair34 verify-pair56
 
 figures:
 	$(PYTHON) scripts/generate_publication_figures.py
+
+paper:
+	./scripts/build_paper.sh
 
 clean:
 	rm -rf build/upstream-bin build/*.tmp artifacts/reports

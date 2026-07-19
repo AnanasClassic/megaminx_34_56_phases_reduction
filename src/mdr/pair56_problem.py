@@ -271,9 +271,16 @@ def validate_problem(problem: dict[str, Any]) -> None:
         raise Pair56ProblemError("FullStateV1 conjugacy is absent")
     for face_id, face in enumerate(SOURCE_FACES):
         full_action = _full_sticker_action(face)
-        verifier_action = actions[face_id * 4]
-        if any(conjugacy[full_action[index]] != verifier_action[conjugacy[index]] for index in identity):
-            raise Pair56ProblemError(f"action {face}1 disagrees with FullStateV1")
+        for power in range(1, 5):
+            verifier_action = actions[face_id * 4 + power - 1]
+            full_power = _power(full_action, power)
+            if any(
+                conjugacy[full_power[index]] != verifier_action[conjugacy[index]]
+                for index in identity
+            ):
+                raise Pair56ProblemError(
+                    f"action {face}{power} disagrees with FullStateV1"
+                )
     target_face_count = len(problem.get("target_faces", []))
     for action in actions[: target_face_count * 4]:
         if [target[index] for index in action] != target:

@@ -15,7 +15,10 @@ class ReductionError(ValueError):
     pass
 
 
-CONTROLS = {"pair34": (536572, 21), "pair56": (407628, 25)}
+CONTROLS = {
+    "pair34": (536572, 21, 7),
+    "pair56": (407628, 25, 7),
+}
 
 
 def verify(root: Path, compositions: Path) -> dict[str, int | bool | str]:
@@ -23,7 +26,8 @@ def verify(root: Path, compositions: Path) -> dict[str, int | bool | str]:
     pair = metadata.get("pair")
     if pair not in CONTROLS or metadata.get("complete") is not True:
         raise ReductionError("unknown or incomplete reduction manifest")
-    raw_count, bound = CONTROLS[pair]
+    raw_count, bound, local_face_count = CONTROLS[pair]
+    local_alphabet_size = local_face_count * 4
     if metadata.get("raw_pairs") != raw_count or metadata.get("max_length") != bound:
         raise ReductionError("reduction controls mismatch")
     for name, spec in metadata["payloads"].items():
@@ -58,6 +62,10 @@ def verify(root: Path, compositions: Path) -> dict[str, int | bool | str]:
             raise ReductionError(f"invalid closed mapping at raw {raw_id}")
         intervals.append((offset, offset + length))
         word = witnesses[offset : offset + length]
+        if any(code >= local_alphabet_size for code in word):
+            raise ReductionError(
+                f"witness at raw {raw_id} leaves the declared {local_face_count}-face alphabet"
+            )
         state = decode_unchecked(states[raw_id * 108 : (raw_id + 1) * 108])
         for code in word:
             state = apply_code(state, code)
@@ -78,6 +86,8 @@ def verify(root: Path, compositions: Path) -> dict[str, int | bool | str]:
     elif witnesses:
         raise ReductionError("unreferenced witness bytes")
     stats = json.loads((root / "statistics.json").read_text(encoding="utf-8"))
+    if stats.get("local_search_face_count") != local_face_count:
+        raise ReductionError("local-rewrite alphabet metadata mismatch")
     expected = {
         "closed_by_boundary_merge": boundary,
         "closed_by_local_rewrite": local,

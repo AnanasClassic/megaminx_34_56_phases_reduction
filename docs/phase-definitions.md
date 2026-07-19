@@ -25,22 +25,34 @@ For the four target phases:
 
 The lookup table for a transition stores the distance from a left coset of the
 target subgroup to the target subgroup under the source subgroup's generators.
-Executable randomized tests confirm that prepending a target-subgroup word does
-not change the coordinate, whereas appending one generally does. These are left
-cosets `Hs` under the documented left-to-right token convention. See
-`state-format.md`.
+This identification is checked exactly during full reproduction. The Go table
+builder verifies that every target generator and all four nonidentity powers
+fix the solved coordinate, while every power of the removed source face is
+nontrivial. The independent SymPy audit recomputes the orders of
+`G5,G6,G7,G8,G9` from the committed, `FullStateV1`-conjugate actions and checks
+that the four consecutive indices are exactly the four table state counts.
+Finally, each complete BFS reaches that many coordinate values. Containment of
+the target subgroup in the solved fiber plus equality of these indices makes
+the target fiber exact; the coordinate cannot be a coarser quotient.
+
+Executable randomized composition tests remain as diagnostics for the coset
+side: prepending a target-subgroup word does not change the coordinate, whereas
+appending one generally does. These are left cosets `Hs` under the documented
+left-to-right token convention. See `state-format.md`.
 
 ## Control values
 
-| Phase | Cosets | Expected diameter | Expected antipodes |
+| Phase | Cosets | Expected target radius | Expected maximal-layer states |
 |---:|---:|---:|---:|
 | 3 | 208,099,584 | 14 | 212 |
 | 4 | 68,400 | 8 | 2,531 |
 | 5 | 64,157,184 | 13 | 3,484 |
 | 6 | 25,945,920 | 13 | 117 |
 
-These values are comparison targets only. Regenerated data determines proof
-coverage.
+These values are target-coset eccentricities under the phase source alphabet,
+not ordinary Schreier-graph diameters. They are comparison targets only;
+regenerated data determines proof coverage. The generated metadata retains the
+upstream field name `diameter` for compatibility.
 
 ## Physical state
 

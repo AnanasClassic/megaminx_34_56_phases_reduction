@@ -126,6 +126,7 @@ def cmd_certify(args: argparse.Namespace) -> int:
             root=args.root, config_path=args.config,
             pair34_database=args.pair34_database,
             pair56_database=args.pair56_database,
+            go_verifier=args.go_verifier,
         )
     else:
         if args.pair34_database is not None or args.pair56_database is not None:
@@ -133,6 +134,7 @@ def cmd_certify(args: argparse.Namespace) -> int:
         result = certify_pair(
             args.pair, root=args.root, config_path=args.config,
             database=args.database, max_length=args.max_length,
+            go_verifier=args.go_verifier,
         )
     rendered = json.dumps(result, indent=2, sort_keys=True)
     print(rendered)
@@ -163,6 +165,10 @@ def parser() -> argparse.ArgumentParser:
     certify.add_argument("--database", type=Path)
     certify.add_argument("--pair34-database", type=Path)
     certify.add_argument("--pair56-database", type=Path)
+    certify.add_argument(
+        "--go-verifier", type=Path,
+        help="also stream every direct word through the independent Go FullStateV1 verifier",
+    )
     certify.add_argument("--report", type=Path)
     certify.set_defaults(func=cmd_certify)
     for name in NOT_IMPLEMENTED:

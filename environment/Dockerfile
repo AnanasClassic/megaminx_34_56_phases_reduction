@@ -5,7 +5,7 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /work
-COPY requirements-training.txt /tmp/requirements-training.txt
+COPY requirements-proof.txt requirements-training.txt /tmp/
 RUN python3 -m venv /opt/mdr-venv \
     && /opt/mdr-venv/bin/pip install --no-cache-dir -r /tmp/requirements-training.txt
 COPY . /work

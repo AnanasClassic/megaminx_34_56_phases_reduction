@@ -1,0 +1,188 @@
+\section{Neural-guided certificate generation}
+\label{sec:neural-search}
+
+The direct certificates were discovered by two separately trained models, one
+for each combined quotient.  They share an architecture and training
+procedure, but their state colorings, action sets, depth scales, parameters,
+and checkpoints are distinct.  \Cref{tab:model-specifications} summarizes the
+certificate-generation configurations.
+
+\begin{table}[t]
+\centering
+\caption{Combined quotient and model specifications.}
+\label{tab:model-specifications}
+\small
+\begin{tabular}{@{}lrr@{}}
+\toprule
+Property & Pair 3+4 & Pair 5+6\\
+\midrule
+Transition & $G_5\to G_7$ & $G_7\to G_9$\\
+Combined quotient size & 14,234,011,545,600 & 1,664,617,163,489,280\\
+State positions & 120 & 120\\
+Position classes & 43 & 67\\
+FTM actions & 28 & 20\\
+Random-walk $K_{\max}$ & 22 & 26\\
+Trainable parameters & 619,996 & 802,260\\
+Certificate length limit & 21 & 25\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Exact quotient encodings}
+
+Each state is a coloring of the $120$ oriented sticker positions induced by
+the target subgroup: positions movable inside the target are collapsed to one
+class, while the remaining positions retain fixed classes.  The problem
+builder uses Schreier--Sims to check both the subgroup index and equality
+between the intended target subgroup and the pointwise stabilizer of the
+retained classes~\cite{seress2003}.  A simultaneous conjugacy check aligns every generated
+sticker action with the independent physical move convention.  Thus the model
+sees the intended combined quotient rather than an accidental coarsening.
+The committed problem manifests are the inputs to certificate replay; the
+artifact recomputes their group orders and physical-action alignment without
+loading a checkpoint.
+
+The network first applies a position-specific class embedding.  Equivalently,
+for coloring $x=(c_1,\ldots,c_{120})$ it computes
+\(
+ e(x)=b+\sum_{p=1}^{120}W_{p,c_p}
+\)
+without materializing the full position--class one-hot vector.  Batch
+normalization and the SiLU activation map this $64$-dimensional representation
+to width $256$.  Each of two residual blocks has the form
+\[
+ h\leftarrow\operatorname{SiLU}\!\left(
+ h+\operatorname{BN}_2\!\left(L_2(
+ \operatorname{Dropout}(\operatorname{SiLU}(\operatorname{BN}_1(L_1(h)))))
+ \right)\right).
+\]
+Dropout was zero in both published runs.  A final linear layer emits one
+real-valued score per legal action; lower scores are searched first.
+
+\subsection{Sparse trajectory supervision}
+\label{sec:sparse-supervision}
+
+Training examples are generated online by nontrivial random walks starting at
+the target coordinate.  Consecutive moves on the same face are excluded
+because their product is either one FTM move or the identity; quotient
+self-loops are also rejected.  For a randomly selected trajectory pivot $x_t$,
+let $a^-$ be the inverse of the preceding action and $a^+$ the sampled next
+action.  Only these two outputs are supervised:
+\begin{equation}
+  \mathcal{L}(x_t)
+  =\frac12\left(Q_\theta(x_t,a^-)-(t-1)\right)^2
+  +\frac12\left(Q_\theta(x_t,a^+)-(t+1)\right)^2.
+  \label{eq:sparse-loss}
+\end{equation}
+The diagnostic pair accuracy is the fraction for which
+$Q_\theta(x_t,a^-)<Q_\theta(x_t,a^+)$.  The trajectory index $t$ is not asserted
+to equal the shortest distance of $x_t$.  Accordingly, $Q_\theta$ is best
+understood as a learned action-ranking score trained from noisy trajectory
+depths, not as an exact distance table or a certified Q-function.
+
+\begin{table}[t]
+\centering
+\caption{Training configuration used for both models, except for the
+pair-specific random-walk limit.}
+\label{tab:training-configuration}
+\small
+\begin{tabular}{@{}ll@{\qquad}ll@{}}
+\toprule
+Optimizer & AdamW & Learning rate & $10^{-4}$\\
+Weight decay & $0.003$ & Gradient clip & $1$\\
+Batch size & $1{,}024$ & Steps per epoch & $256$\\
+Walk range & $2\ldots K_{\max}$ & Validation size & $16{,}384$\\
+Seed & $42$ & Inference/training type & bfloat16\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+For every sample, the walk length is uniform on the displayed integer range
+and the pivot is uniform among its internal vertices.  Eligible nontrivial
+moves are sampled uniformly after the same-face exclusion.  The pair-3+4
+certificate run used epochs 1024 and 1120 of one training run; pair 5+6 used
+epochs 864 and 3744.  These checkpoint identities record the run that found
+the certificates, not a claim that their epochs are generally optimal.
+
+\subsection{One beam per root, evaluated in batches}
+\label{sec:batched-beam}
+
+At each depth, every root maintains its own beam, visited set, last-face
+context, and paths; only neural inference is shared across roots.  Scores are
+the current one-step values $Q_\theta(x,a)$, not cumulative path scores.  At a
+beam of width $B$ with $A$ actions, the implementation first obtains the best
+\[
+  C=\min\{BA,\max(A,16B)\}
+\]
+parent--action pairs before CPU deduplication.  It initially scans
+\(\min\{C,\max(A,2B)\}\) candidates and scans the rest only if duplicates
+prevent the next beam from filling.  Same-face continuations are masked.  The
+goal test occurs immediately after applying an action; self-loops and then
+previously visited keys are discarded.  A key is the pair
+\((\text{coloring},\text{last face})\), because those two copies of one
+coloring have different legal continuations.  The first $B$ surviving keys in
+score order form the next beam.
+
+\begin{lstlisting}[caption={One root of the batched beam search.  Model calls
+for all active roots are fused in the implementation.},label={lst:inner-beam}]
+beam := {(root, last_face = none, word = empty)}
+visited := {(root, none)}
+for depth := 1 .. length_limit:
+    P := legal (parent, action) pairs from beam
+    rank P by one-step score Q(parent, action), ascending
+    next := empty
+    for pair in bounded top-candidate window P:
+        child := apply(pair)
+        if child is target: return pair.word
+        key := (child, face(pair.action))
+        if child is a self-loop or key in visited: continue
+        add key to visited and pair to next
+        if |next| = beam_width: break
+    if next is empty: return failure
+    beam := next
+return failure
+\end{lstlisting}
+
+Exact floating-point ties inherit whatever ordering the PyTorch device
+produces; the search does not require that order to be reproducible.  Any returned word is replayed
+in the combined quotient and on the corresponding physical state before it can
+enter the certificate database.
+
+\begin{lstlisting}[caption={Survivor beam cascade used for certificate discovery.},
+                   label={lst:cascade}]
+U := ordered set of unresolved frontier IDs
+for (checkpoint, beam_width) in schedule:
+    for bounded chunk C of U:
+        words := batched_per_root_beams(C, checkpoint,
+                                       beam_width, length_limit)
+        for (id, word) in words:
+            if replay_quotient(id, word) and replay_physical(id, word):
+                persist_certificate(id, word, provenance)
+    U := U minus all persisted certificate IDs
+    stop if U is empty
+require U is empty
+\end{lstlisting}
+
+The database is resumable: existing IDs are skipped, records are tied to
+checksums of the physical state and proof problem, and a later stage may replace
+a record only with a shorter word or the same length at a smaller beam width.
+The production runner uses outer chunks of $10{,}000$ frontier IDs and root
+minibatches that decrease from 128 at narrow widths to 16 at width 4096.  The
+older pair-5+6 width-64 pass used an earlier low-batch implementation, which is
+why its throughput is not compared directly with later tiers.  Beam width,
+checkpoint identity, and batching record discovery provenance only.
+
+\subsection{Published cascade schedules}
+
+The survivor plot in \cref{fig:survivor-curves} shows the schedules; full
+counts, timings, and checkpoint splits appear in \cref{app:cascade}.  Roughly
+60\% of each direct-certificate set was found at its first beam tier, while
+the maximum width was applied to only one pair-3+4 survivor and $28$
+pair-5+6 survivors.  These observations do not isolate the causal effect of
+beam width.  Pair 3+4 combines
+epoch-1024 and epoch-1120 checkpoints at width 32; pair 5+6 switches from
+epoch 864 at width 64 to epoch 3744 for subsequent tiers.  Moreover, every
+later tier sees a survivor distribution selected by all earlier tiers.  We
+therefore present the cascade as the successful certificate-generation
+portfolio actually used, not as evidence that one beam width dominates
+another.

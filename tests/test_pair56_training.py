@@ -1,19 +1,25 @@
 import unittest
 from pathlib import Path
 
-import torch
+try:
+    import torch
+except ModuleNotFoundError as exc:
+    if exc.name != "torch":
+        raise
+    torch = None
 
 from mdr.config import ROOT
 from mdr.pair56_problem import K_MAX, full_state_to_pair56, load_problem
-from mdr.pair56_training import (
-    build_allowed_moves,
-    make_generator,
-    sample_rw_middle_batch,
-    sparse_q_metrics,
-)
-from mdr.pair56_testing import batched_beam_solve
-from mdr.qmlp import PairQMLP, count_parameters
 from mdr.state import FullState, Move
+if torch is not None:
+    from mdr.pair56_training import (
+        build_allowed_moves,
+        make_generator,
+        sample_rw_middle_batch,
+        sparse_q_metrics,
+    )
+    from mdr.pair56_testing import batched_beam_solve
+    from mdr.qmlp import PairQMLP, count_parameters
 
 
 class Pair56TrainingTests(unittest.TestCase):
@@ -38,6 +44,7 @@ class Pair56TrainingTests(unittest.TestCase):
             self.problem["expected_space_size"],
         )
 
+    @unittest.skipIf(torch is None, "PyTorch training dependency is not installed")
     def test_small_model_shape_and_size(self) -> None:
         model = PairQMLP(
             state_size=120, num_classes=67, actions=20,
@@ -58,6 +65,7 @@ class Pair56TrainingTests(unittest.TestCase):
             expected = [target[index] for index in self.problem["actions"][move_id]]
             self.assertEqual(observed, expected, name)
 
+    @unittest.skipIf(torch is None, "PyTorch training dependency is not installed")
     def test_sampler_uses_real_nontrivial_coset_steps(self) -> None:
         actions = torch.tensor(self.problem["actions"], dtype=torch.int64)
         target = torch.tensor(self.problem["target"], dtype=torch.int64)
@@ -81,6 +89,7 @@ class Pair56TrainingTests(unittest.TestCase):
         self.assertGreater(float(loss), 0)
         self.assertEqual(float(accuracy), 0)
 
+    @unittest.skipIf(torch is None, "PyTorch training dependency is not installed")
     def test_batched_beam_replays_one_move_states(self) -> None:
         actions = torch.tensor(self.problem["actions"], dtype=torch.int64)
         target = torch.tensor(self.problem["target"], dtype=torch.int64)
