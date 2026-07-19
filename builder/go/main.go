@@ -133,11 +133,98 @@ func (l *layout) upstreamFromDense(index uint32) uint32 { cr:=index%l.cornerCoun
 func (l *layout) next(index uint32, code int) uint32 { return l.cornerTransitions[code][index%l.cornerCount]+l.cornerCount*l.edgeTransitions[code][index/l.cornerCount] }
 func inverseCode(code int) byte { return byte((code/4)*4+(4-(code%4+1))) }
 
-func applyFull(s totalState, code int) totalState { for i:=0;i<code%4+1;i++ {switch code/4 {case 0:s=moveU(s);case 1:s=moveR(s);case 2:s=moveF(s);case 3:s=moveL(s);case 4:s=moveBR(s);case 5:s=moveBL(s);case 6:s=moveFR(s)}}; return s }
+func applyFull(s totalState, code int) totalState {
+	if code < 0 || code >= len(specs)*4 {
+		panic(fmt.Sprintf("invalid full-state move code %d", code))
+	}
+	for i := 0; i < code%4+1; i++ {
+		switch code / 4 {
+		case 0:
+			s = moveU(s)
+		case 1:
+			s = moveR(s)
+		case 2:
+			s = moveF(s)
+		case 3:
+			s = moveL(s)
+		case 4:
+			s = moveBR(s)
+		case 5:
+			s = moveBL(s)
+		case 6:
+			s = moveFR(s)
+		case 7:
+			s = moveFL(s)
+		case 8:
+			s = moveDR(s)
+		case 9:
+			s = moveDL(s)
+		case 10:
+			s = moveB(s)
+		case 11:
+			s = moveD(s)
+		default:
+			panic(fmt.Sprintf("invalid full-state face code %d", code/4))
+		}
+	}
+	return s
+}
 func upstreamHash(phase int,s totalState) uint32 {switch phase {case 3:return hash7Gen(s);case 4:return hash6Gen(s);case 5:return hash5Gen(s);case 6:return hash4Gen(s)};panic("phase")}
 
 func selfTest() error {
+	for face := range specs {
+		s := defaultState
+		for turn := 0; turn < 5; turn++ {
+			s = applyFull(s, face*4)
+		}
+		if !bytes.Equal(encodeFullState(s), encodeFullState(defaultState)) {
+			return fmt.Errorf("full-state generator order face %d", face)
+		}
+		for power := 0; power < 4; power++ {
+			code := face*4 + power
+			s = applyFull(defaultState, code)
+			s = applyFull(s, int(inverseCode(code)))
+			if !bytes.Equal(encodeFullState(s), encodeFullState(defaultState)) {
+				return fmt.Errorf("full-state inverse face %d power %d", face, power+1)
+			}
+		}
+	}
+	fmt.Println("full-state dispatcher: all 48 moves have order/inverse checks")
+	phaseFaceCounts := map[int]int{3:7, 4:6, 5:5, 6:4}
+	for _, phase := range []int{3, 4, 5, 6} {
+		sourceFaceCount := phaseFaceCounts[phase]
+		root := upstreamHash(phase, defaultState)
+		for face := 0; face < sourceFaceCount-1; face++ {
+			for power := 0; power < 4; power++ {
+				code := face*4 + power
+				if upstreamHash(phase, applyFull(defaultState, code)) != root {
+					return fmt.Errorf("phase %d target generator escaped the solved fiber: face %d power %d", phase, face, power+1)
+				}
+			}
+		}
+		removedFace := sourceFaceCount - 1
+		for power := 0; power < 4; power++ {
+			code := removedFace*4 + power
+			if upstreamHash(phase, applyFull(defaultState, code)) == root {
+				return fmt.Errorf("phase %d removed generator is trivial: face %d power %d", phase, removedFace, power+1)
+			}
+		}
+		fmt.Printf("phase %d: target generators fix the solved fiber and removed-face powers are nontrivial\n", phase)
+	}
 	for _,phase:=range []int{3,5,6} { l,_:=phaseLayout(phase)
+		root := l.denseFromState(defaultState)
+		for face := 0; face < l.faceCount-1; face++ {
+			for power := 0; power < 4; power++ {
+				if l.denseFromState(applyFull(defaultState, face*4+power)) != root {
+					return fmt.Errorf("phase %d dense target-fiber mismatch face %d power %d", phase, face, power+1)
+				}
+			}
+		}
+		for power := 0; power < 4; power++ {
+			if l.denseFromState(applyFull(defaultState, (l.faceCount-1)*4+power)) == root {
+				return fmt.Errorf("phase %d dense removed generator is trivial power %d", phase, power+1)
+			}
+		}
 		for face:=0;face<l.faceCount;face++ { code:=face*4; for i:=uint32(0);i<l.cornerCount;i++ {x:=i;for k:=0;k<5;k++ {x=l.cornerTransitions[code][x]};if x!=i{return fmt.Errorf("phase %d corner order face %d",phase,face)}}; for i:=uint32(0);i<l.edgeCount;i++ {x:=i;for k:=0;k<5;k++ {x=l.edgeTransitions[code][x]};if x!=i{return fmt.Errorf("phase %d edge order face %d",phase,face)}} }
 		s:=defaultState
 		for step:=0;step<500;step++ { code:=(step*17+11)%(l.faceCount*4); dense:=l.denseFromState(s); if l.upstreamFromDense(dense)!=upstreamHash(phase,s) {return fmt.Errorf("phase %d rank mismatch at step %d",phase,step)}; moved:=applyFull(s,code); if l.next(dense,code)!=l.denseFromState(moved) {return fmt.Errorf("phase %d transition mismatch at step %d",phase,step)}; s=moved }
@@ -226,8 +313,10 @@ var activeK3,activeK4 map[string][]byte
 func localRewrite(a,b []byte,short map[[108]byte][]byte,bound int)([]byte,bool){base:=append(append([]byte(nil),a...),b...);normal:=normalizeWord(base);if len(normal)<=bound{return normal,true};if len(a)>=2&&len(b)>=2{window:=append(append([]byte(nil),a[len(a)-2:]...),b[:2]...);s:=wordState(window);var key [108]byte;copy(key[:],encodeFullState(s));if replacement,ok:=short[key];ok&&len(replacement)<4{word:=append([]byte(nil),a[:len(a)-2]...);word=append(word,replacement...);word=append(word,b[2:]...);if len(word)<=bound{return word,true}}};if len(a)>=3&&len(b)>=3{window:=string(append(append([]byte(nil),a[len(a)-3:]...),b[:3]...));if replacement,ok:=activeK3[window];ok{word:=append([]byte(nil),a[:len(a)-3]...);word=append(word,replacement...);word=append(word,b[3:]...);if len(word)<=bound{return word,true}}};if len(a)>=4&&len(b)>=4{window:=string(append(append([]byte(nil),a[len(a)-4:]...),b[:4]...));if replacement,ok:=activeK4[window];ok{word:=append([]byte(nil),a[:len(a)-4]...);word=append(word,replacement...);word=append(word,b[4:]...);if len(word)<=bound{return word,true}}};return nil,false}
 
 func reducePair(name,hardA,hardB,out string)error{phaseA,a,err:=readHardGo(hardA);if err!=nil{return err};phaseB,b,err:=readHardGo(hardB);if err!=nil{return err};controls:=map[string][4]int{"pair34":{3,4,536572,21},"pair56":{5,6,407628,25}};control,ok:=controls[name];if !ok||int(phaseA)!=control[0]||int(phaseB)!=control[1]||len(a)*len(b)!=control[2]{return errors.New("reduction input controls mismatch")};bound:=control[3];repsA:=make([]totalState,len(a));for i,r:=range a{repsA[i]=representativeFromSolution(r.solution)};repsB:=make([]totalState,len(b));for i,r:=range b{repsB[i]=representativeFromSolution(r.solution)}
-	// The source generator count is 7 for phase 3 and 5 for phase 5.
-	faceCount:=map[int]int{3:7,5:5}[control[0]];if configured:=os.Getenv("MDR_LOCAL_FACE_COUNT");configured!=""{parsed,parseErr:=strconv.Atoi(configured);if parseErr!=nil||parsed<faceCount||parsed>12{return errors.New("MDR_LOCAL_FACE_COUNT must be between the phase source count and 12")};faceCount=parsed};short:=shortDictionary(faceCount,3);activeK3=k3Rewrites(a,b,faceCount);activeK4=nil;if control[0]==5{activeK4=k4Rewrites(a,b,faceCount)}else if control[0]==3&&faceCount==7{activeK4=k4JoinRewrites(a,b,faceCount)};raw:=len(a)*len(b);mapping:=make([]byte,raw*16);witnesses:=make([]byte,0);remaining:=make([]uint32,0,raw);boundaryCount,localCount:=0,0;rawID:=0;maxVerified:=0
+	// Both publication reductions use the first seven faces (the G5 alphabet).
+	// Pair56 deliberately permits two more faces than its phase-5 source
+	// alphabet, so its exact rewrite witnesses need not stay inside G7.
+	minimumFaceCount:=map[int]int{3:7,5:5}[control[0]];faceCount:=map[string]int{"pair34":7,"pair56":7}[name];if configured:=os.Getenv("MDR_LOCAL_FACE_COUNT");configured!=""{parsed,parseErr:=strconv.Atoi(configured);if parseErr!=nil||parsed<minimumFaceCount||parsed>12{return errors.New("MDR_LOCAL_FACE_COUNT must be between the phase source count and 12")};faceCount=parsed};short:=shortDictionary(faceCount,3);activeK3=k3Rewrites(a,b,faceCount);activeK4=nil;if control[0]==5{activeK4=k4Rewrites(a,b,faceCount)}else if control[0]==3&&faceCount==7{activeK4=k4JoinRewrites(a,b,faceCount)};raw:=len(a)*len(b);mapping:=make([]byte,raw*16);witnesses:=make([]byte,0);remaining:=make([]uint32,0,raw);boundaryCount,localCount:=0,0;rawID:=0;maxVerified:=0
 	for _,ar:=range a{for bi,br:=range b{var witness []byte;status:=byte(0);if w,yes:=boundaryRewrite(ar.solution,br.solution);yes&&len(w)<=bound{witness,status=w,1}else if w,yes:=localRewrite(ar.solution,br.solution,short,bound);yes{witness,status=w,2};record:=mapping[rawID*16:(rawID+1)*16];binary.LittleEndian.PutUint32(record[0:4],uint32(rawID));if status==0{record[4]=0;record[5]=0;binary.LittleEndian.PutUint32(record[8:12],uint32(rawID));remaining=append(remaining,uint32(rawID))}else{s:=repsB[bi];for i:=len(ar.solution)-1;i>=0;i--{s=applyFull(s,int(inverseCode(int(ar.solution[i]))))};for _,code:=range witness{s=applyFull(s,int(code))};if !bytes.Equal(encodeFullState(s),encodeFullState(defaultState)){return fmt.Errorf("reduction witness failed raw %d",rawID)};record[4]=status;record[5]=byte(len(witness));binary.LittleEndian.PutUint32(record[8:12],^uint32(0));binary.LittleEndian.PutUint32(record[12:16],uint32(len(witnesses)));witnesses=append(witnesses,witness...);if len(witness)>maxVerified{maxVerified=len(witness)};if status==1{boundaryCount++}else{localCount++}};rawID++}}
 	if err:=os.MkdirAll(out,0755);err!=nil{return err};payloadData:=map[string][]byte{"mapping.bin":mapping,"witnesses.bin":witnesses,"remaining_ids.bin":encodeFrontier(remaining)};payloads:=map[string]any{};for file,data:=range payloadData{path:=filepath.Join(out,file);if err:=atomicWrite(path,data);err!=nil{return err};sum,n,err:=sha(path);if err!=nil{return err};payloads[file]=map[string]any{"sha256":sum,"bytes":n}};maxK:=3;if activeK4!=nil{maxK=4};stats:=map[string]any{"pair":name,"raw_pairs":raw,"unique_full_states":raw,"symmetry_orbits":raw,"inversion_orbits":nil,"inversion_applied":false,"closed_by_boundary_merge":boundaryCount,"closed_by_local_rewrite":localCount,"remaining_canonical_representatives":len(remaining),"largest_orbit":1,"median_orbit":1,"maximum_verified_witness_length":maxVerified,"local_search_window_k":maxK,"local_search_face_count":faceCount};if err:=atomicJSON(filepath.Join(out,"statistics.json"),stats);err!=nil{return err};sum,n,err:=sha(filepath.Join(out,"statistics.json"));if err!=nil{return err};payloads["statistics.json"]=map[string]any{"sha256":sum,"bytes":n};meta:=map[string]any{"schema_version":1,"pair":name,"raw_pairs":raw,"max_length":bound,"mapping_record_bytes":16,"status_codes":map[string]int{"remaining":0,"boundary":1,"local":2},"symmetry_policy":"identity pending exhaustive rotation stabilizer report","inversion_policy":"not applied pending exact analysis","local_rewrite_policy":fmt.Sprintf("commuting normalization and exact MITM boundary windows through k=%d over %d faces",maxK,faceCount),"payloads":payloads,"complete":true};if err:=atomicJSON(filepath.Join(out,"metadata.json"),meta);err!=nil{return err};fmt.Printf("%s reductions: boundary=%d local=%d remaining=%d\n",name,boundaryCount,localCount,len(remaining));return nil}
 

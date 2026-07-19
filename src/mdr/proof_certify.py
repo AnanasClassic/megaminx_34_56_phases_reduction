@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import inspect
 import json
 from pathlib import Path
 from typing import Callable
@@ -15,6 +16,8 @@ from .artifacts import (
 from .compositions import verify_compositions
 from .config import DEFAULT_CONFIG, ROOT, load_config
 from .hard_states import verify_hard
+from . import go_bulk_verify as go_bulk_verify_module
+from . import state as state_module
 from .pair34_certificate_verify import verify as verify_pair34_certificates
 from .pair56_certificate_verify import verify as verify_pair56_certificates
 from .reduction_verify import verify as verify_reductions
@@ -49,6 +52,13 @@ PAIR_CONTROLS = {
 def _require_equal(name: str, observed: object, expected: object) -> None:
     if observed != expected:
         raise ProofError(f"{name}: observed={observed!r}, expected={expected!r}")
+
+
+def _python_source_path(source: object) -> Path:
+    path = inspect.getsourcefile(source)
+    if path is None:
+        raise ProofError(f"cannot resolve Python source for {source!r}")
+    return Path(path).resolve()
 
 
 def _verify_table_and_hard(
@@ -115,6 +125,7 @@ def _coverage_summary(
 def certify_pair(
     pair: str, *, root: Path = ROOT, config_path: Path = DEFAULT_CONFIG,
     database: Path | None = None, max_length: int | None = None,
+    go_verifier: Path | None = None,
 ) -> dict[str, object]:
     if pair not in PAIR_CONTROLS:
         raise ProofError(f"unknown pair: {pair}")
@@ -151,19 +162,42 @@ def certify_pair(
         problem_path=(root / controls["problem"]).resolve(),
         hard_ids_path=(reduction_root / "remaining_ids.bin").resolve(),
         states_path=(composition_root / "unique_states.bin").resolve(),
+        go_verifier=go_verifier.resolve() if go_verifier is not None else None,
     )
     coverage = _coverage_summary(
         pair=pair, reduction=reduction, certificates=certificates,
     )
 
-    checksums = {
+    checksums: dict[str, str] = {
         "config": sha256_file(config_path),
         "composition_metadata": sha256_file(composition_root / "metadata.json"),
         "reduction_metadata": sha256_file(reduction_root / "metadata.json"),
         "certificate_database": sha256_file(database_path),
         "problem": sha256_file(root / controls["problem"]),
-        "checker_source": sha256_file(Path(__file__)),
+        "checker_source": sha256_file(_python_source_path(certify_pair)),
+        "python_certificate_checker_source": sha256_file(
+            _python_source_path(certificate_verifier)
+        ),
+        "python_full_state_source": sha256_file(_python_source_path(state_module)),
+        "go_bulk_bridge_source": sha256_file(_python_source_path(go_bulk_verify_module)),
     }
+    if go_verifier is not None:
+        verifier_path = go_verifier.resolve()
+        verifier_checksum = sha256_file(verifier_path)
+        go_report = certificates["replay"]["go_full_state"]
+        if not isinstance(go_report, dict):
+            raise ProofError(f"{pair} Go full-state replay report is absent")
+        _require_equal(
+            f"{pair} Go verifier binary checksum",
+            go_report.get("verifier_sha256"), verifier_checksum,
+        )
+        # The executable is the object that actually performed the replay and
+        # is therefore authoritative.  A source hash is supplementary and is
+        # recorded only when this checkout contains that source.
+        checksums["go_verifier_binary"] = verifier_checksum
+        go_source = ROOT / "verifier" / "go" / "main.go"
+        if go_source.is_file():
+            checksums["go_full_state_source_advisory"] = sha256_file(go_source)
     result: dict[str, object] = {
         "valid": True,
         "pair": pair,
@@ -184,13 +218,16 @@ def certify_pair(
 def certify_all(
     *, root: Path = ROOT, config_path: Path = DEFAULT_CONFIG,
     pair34_database: Path | None = None, pair56_database: Path | None = None,
+    go_verifier: Path | None = None,
 ) -> dict[str, object]:
     results = {
         "pair34": certify_pair(
             "pair34", root=root, config_path=config_path, database=pair34_database,
+            go_verifier=go_verifier,
         ),
         "pair56": certify_pair(
             "pair56", root=root, config_path=config_path, database=pair56_database,
+            go_verifier=go_verifier,
         ),
     }
     payload = json.dumps(results, sort_keys=True, separators=(",", ":")).encode()

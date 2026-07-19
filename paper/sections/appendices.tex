@@ -1,0 +1,126 @@
+\section{Published beam-cascade provenance}
+\label{app:cascade}
+
+\Cref{tab:pair34-cascade-full,tab:pair56-cascade-full} give the complete
+per-tier provenance retained for the certificate-generation run.  Search time excludes
+startup, validation, database-only skips, pauses, and independent replay.
+
+\begin{table}[!ht]
+\centering
+\caption{Pair 3+4 cascade on an NVIDIA A100 80GB PCIe GPU.}
+\label{tab:pair34-cascade-full}
+\small
+\begin{tabular}{@{}rrrrr@{}}
+\toprule
+Beam & Before & Newly certified & Remaining & Active time \\
+\midrule
+32   & 536,369 & 324,812 & 211,557 & 1:28:13$^{*}$ \\
+64   & 211,557 & 130,282 & 81,275  & 0:25:44 \\
+128  & 81,275  & 60,490  & 20,785  & 0:15:21 \\
+256  & 20,785  & 17,526  & 3,259   & 0:08:28 \\
+512  & 3,259   & 2,921   & 338     & 0:02:52 \\
+1024 & 338     & 314     & 24      & 0:00:46.9 \\
+2048 & 24      & 23      & 1       & 0:00:16.2 \\
+4096 & 1       & 1       & 0       & 0:00:00.6 \\
+\bottomrule
+\end{tabular}
+\par\smallskip
+\footnotesize $^{*}$Combined epoch-1024 partial pass and epoch-1120 pass;
+the first interval is reconstructed from certificate timestamps.
+\end{table}
+
+\begin{table}[h]
+\centering
+\caption{Pair 5+6 cascade on an NVIDIA A100 80GB PCIe GPU.}
+\label{tab:pair56-cascade-full}
+\small
+\begin{tabular}{@{}rrrrr@{}}
+\toprule
+Beam & Before & Newly certified & Remaining & Active time \\
+\midrule
+64   & 399,167 & 235,840 & 163,327 & 2:55:41$^{*}$ \\
+128  & 163,327 & 139,544 & 23,783  & 0:40:29 \\
+256  & 23,783  & 19,689  & 4,094   & 0:10:44$^{\dagger}$ \\
+1024 & 4,094   & 4,066   & 28      & 0:06:37 \\
+4096 & 28      & 28      & 0       & 0:00:13.3 \\
+\bottomrule
+\end{tabular}
+\par\smallskip
+\footnotesize $^{*}$Reconstructed from timestamps for the older low-batch
+implementation.  $^{\dagger}$Combined across an interrupted and resumed tier.
+\end{table}
+
+\section{Direct-certificate length distributions}
+\label{app:word-lengths}
+
+\begin{table}[!ht]
+\centering
+\caption{Exact histograms queried from the two direct-certificate databases.
+The exact-rewrite partition is not included.}
+\label{tab:direct-length-histograms}
+\small
+\begin{tabular}{@{}rrr@{\qquad}rrr@{}}
+\toprule
+Length & Pair 3+4 & Pair 5+6 & Length & Pair 3+4 & Pair 5+6\\
+\midrule
+14 & 8 & 1      & 20 & 168,765 & 32,170\\
+15 & 245 & 17   & 21 & 172,838 & 54,632\\
+16 & 2,631 & 122 & 22 & -- & 72,735\\
+17 & 16,279 & 942 & 23 & -- & 79,404\\
+18 & 56,097 & 4,392 & 24 & -- & 75,502\\
+19 & 119,506 & 14,111 & 25 & -- & 65,139\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Artifact entry points}
+\label{app:commands}
+
+The following commands are the intended top-level interfaces:
+\begin{lstlisting}
+make verify-package       # fast archive, schema, and checksum audit
+make audit-tree           # reject caches and unintended publication files
+make test                 # unit and corruption-oriented tests
+make verify-pair34        # regenerate and certify phases 3+4
+make verify-pair56        # regenerate and certify phases 5+6
+make paper                # build this manuscript and check its LaTeX log
+\end{lstlisting}
+The two complete reproductions may also be invoked together with
+\texttt{make verify-all}.  Pair-specific scripts expose training and discovery
+separately so that no GPU dependency is introduced into certificate replay.
+
+\clearpage
+\section{Fail-closed verification checklist}
+\label{app:threats}
+
+\begin{table}[!ht]
+\centering
+\caption{Selected failure modes and the corresponding checks.}
+\label{tab:threat-checks}
+\small
+\renewcommand{\arraystretch}{1.12}
+\begin{tabularx}{\textwidth}{@{}
+  >{\raggedright\arraybackslash}p{0.34\textwidth}
+  >{\raggedright\arraybackslash}X@{}}
+\toprule
+Failure mode & Required check \\
+\midrule
+Published counts truncate generation & Derive reachability and maximal layers
+from regenerated tables; compare controls only afterward. \\
+Two quotient integers are treated as a physical product & Construct a full
+state and round-trip both phase coordinates and the intermediate state. \\
+Wrong multiplication or replay direction & Check the physical lifting
+identities and replay every stored optimal word left-to-right. \\
+Duplicate elimination hides a raw pair & Store a raw-to-unique map and require
+coverage for every raw ID, irrespective of injectivity. \\
+Search database is partial or stale & Require the exact remaining-ID set and
+metadata hashes of the state, problem, and reduction artifacts. \\
+Malformed or over-length move word & Use a strict canonical parser, count FTM
+tokens, and enforce the pair-specific limit before replay. \\
+Shared transition bug accepts a false word & Replay in the combined quotient,
+the separately implemented Python physical model, and the Go physical verifier. \\
+Neural score is mistaken for proof & Never load a checkpoint during proof
+reproduction; accept only replayed words. \\
+\bottomrule
+\end{tabularx}
+\end{table}

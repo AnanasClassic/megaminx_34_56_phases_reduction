@@ -4,8 +4,31 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from mdr.pair56_certificate_verify import _open_checked_database
+from mdr.config import ROOT
+from mdr.pair56_certificate_verify import _open_checked_database, verify
 from mdr.pair56_certificates import Pair56CertificateStore
+from mdr.state import FullState
+
+
+FAKE_GO_VERIFIER = """#!/usr/bin/env python3
+import hashlib
+import json
+import sys
+target = sys.argv[sys.argv.index("--target") + 1]
+limit = int(sys.argv[sys.argv.index("--max-length") + 1])
+transcript = hashlib.sha256()
+lines = list(sys.stdin.buffer)
+for line in lines:
+    transcript.update(line)
+rows = [line.rstrip(b"\\n").decode("ascii").split("\\t") for line in lines]
+maximum = max((len(row[2].split()) for row in rows), default=None)
+print(json.dumps({"valid": True, "records": len(rows),
+                  "maximum_solution_length": maximum,
+                  "target": target, "max_length": limit,
+                  "first_state_id": int(rows[0][0]) if rows else None,
+                  "last_state_id": int(rows[-1][0]) if rows else None,
+                  "transcript_sha256": transcript.hexdigest()}))
+"""
 
 
 class Pair56CertificateTests(unittest.TestCase):
@@ -83,6 +106,35 @@ class Pair56CertificateTests(unittest.TestCase):
             connection.close()
             after = hashlib.sha256(database.read_bytes()).digest()
             self.assertEqual(after, before)
+
+    def test_bulk_go_replay_is_bound_to_the_same_certificate_count(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            problem = ROOT / "training" / "pair56" / "problem.json"
+            ids = root / "ids.bin"
+            states = root / "states.bin"
+            database = root / "certificates.sqlite3"
+            go_verifier = root / "mdr-verify"
+            state = FullState.solved().encode()
+            ids.write_bytes((0).to_bytes(4, "little"))
+            states.write_bytes(state)
+            go_verifier.write_text(FAKE_GO_VERIFIER, encoding="utf-8")
+            go_verifier.chmod(0o755)
+            with Pair56CertificateStore(
+                database, problem_path=problem, hard_ids_path=ids,
+                composition_states_path=states,
+            ) as store:
+                store.add(
+                    state_id=0, state_bytes=state, solution=(), beam_width=1,
+                    checkpoint_sha256_hex="11" * 32, checkpoint_epoch=0,
+                )
+                store.commit()
+            result = verify(
+                database=database, problem_path=problem, hard_ids_path=ids,
+                states_path=states, go_verifier=go_verifier,
+            )
+            self.assertEqual(result["verified_certificates"], 1)
+            self.assertEqual(result["replay"]["go_full_state"]["records"], 1)
 
 
 if __name__ == "__main__":

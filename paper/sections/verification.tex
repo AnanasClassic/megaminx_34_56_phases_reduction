@@ -1,0 +1,129 @@
+\section{Certificate verification and trusted base}
+\label{sec:verification}
+
+The search computation answers an existential question for each frontier
+state: it proposes a word that appears to reach the target subgroup within the
+required limit.  Certification turns those proposals into a finite,
+fail-closed proof.  In particular, neither a neural score nor a claim that a
+beam exhausted its search space is accepted as evidence.
+
+\subsection{Certificate records and exact coverage}
+
+For each pair, the direct certificates are stored in a SQLite database.  A
+row contains the raw state ID, a SHA-256 digest of its 108-byte physical state,
+the byte-coded move word and its length, and discovery provenance consisting
+of the beam width and checkpoint digest.  A second digest binds the ID, state,
+word, and provenance fields.  Database metadata binds the complete collection
+to the metric, target subgroup, proof length limit, combined-quotient
+definition, physical composition file, and ordered list of unresolved IDs.
+
+Let $I$ be the full raw frontier ID set, $E\subset I$ the IDs closed by exact
+rewriting, and $N\subset I$ the IDs represented in the direct-certificate
+database.  The checker constructs $I$ and $E$ from regenerated artifacts and
+requires
+\begin{equation}
+  E\cap N=\varnothing,
+  \qquad E\cup N=I.
+  \label{eq:exact-partition}
+\end{equation}
+It rejects missing IDs, extra IDs, duplicates, malformed words, stale state
+digests, metadata disagreement, and any word longer than the pair-specific
+limit.  Thus a partial or interrupted search database cannot be mistaken for
+a complete proof.
+
+\subsection{Replay paths and the full-reproduction cross-check}
+
+The proof checker replays every accepted direct word along the first two paths
+below.  The full-reproduction entry points additionally require the third:
+\begin{enumerate}
+  \item the exact 120-position coloring of the combined quotient;
+  \item an independently written Python implementation of the full edge and
+    corner permutations and orientations; and
+  \item a persistent Go verifier compiled against the pinned physical move
+    definitions, receiving only the full-state bytes and canonical move word.
+\end{enumerate}
+The quotient replay establishes arrival at the intended combined target, and
+the Python full-state replay applies the physical moves and tests membership in
+$G_7$ or $G_9$.  In a full reproduction, the Go path repeats the physical
+replay without parsing SQLite or importing the Python transition code.  Python
+and Go then independently hash the canonical stream of ID, state bytes, and
+word; the workflow requires equality of the SHA-256 transcript digest, first
+and last IDs, record count, and maximum length.  Thus aggregate agreement
+cannot hide a substituted or omitted record.  Exact-rewrite witnesses are
+likewise replayed before their IDs enter $E$.
+
+The committed historical reference reports record the complete Python replay
+but predate the transcript-bound Go path and contain no Go transcript fields.
+Accordingly, they are not evidence that this newer cross-check was executed for
+the published snapshot; rather, the repository makes that cross-check a
+fail-closed requirement of a fresh full reproduction.  The mathematical upper
+bounds rely on exact coverage and deterministic word replay, while the Go path
+is an additional implementation-diversity check on the physical action.
+
+These checks address different failure modes.  Agreement between two
+representations cannot by itself prove that the frontier is complete, while an
+exact ID partition cannot show that a stored word has the advertised action.
+The proof requires both \cref{eq:exact-partition} and successful replay.
+
+\begin{table}[t]
+\centering
+\caption{Verification roles and their independence boundary.}
+\label{tab:verification-roles}
+\small
+\renewcommand{\arraystretch}{1.12}
+\begin{tabularx}{\textwidth}{@{}
+  >{\raggedright\arraybackslash}p{0.22\textwidth}
+  >{\raggedright\arraybackslash}p{0.25\textwidth}
+  >{\raggedright\arraybackslash}X@{}}
+\toprule
+Component & Implementation & Property checked\\
+\midrule
+Frontier and partition & deterministic Python pipeline & complete
+maximal-layer product and exact ID partition\\
+Combined replay & pair-specific Python coloring & every direct word reaches
+the intended combined target coordinate\\
+Physical replay & Python \texttt{FullStateV1} & every direct word reaches the
+physical target subgroup\\
+Physical cross-check & persistent Go verifier & separately implemented replay
+of the exact same transcript; it shares the pinned move convention\\
+Exact rewrites & generated in Go, checked in Python & every accepted rewrite
+word has the allowed alphabet and length and physically solves its state\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The deterministic coverage checker is not presented as an independent second
+implementation of the entire proof.  Independence here is narrower: the two
+physical replay engines use separate code paths, and the transcript binding
+ensures that they receive the same direct certificates.
+
+\subsection{Regeneration checks}
+
+The full workflow begins before certificate replay.  It downloads a pinned
+upstream source archive after verifying its digest, builds the table generator
+and verifiers, and regenerates the four complete phase tables.  For every
+phase, the checker validates the reachable count, histogram, maximal distance,
+maximal-layer count, predecessor structure, and all stored checksums.  It then
+reconstructs every maximal physical representative and optimal lowering word,
+forms the complete products from \cref{eq:pair34-frontier-size,eq:pair56-frontier-size},
+checks the lifting identities of \cref{lem:maximal-lifting}, and regenerates
+the exact-rewrite partition.
+
+The published numerical controls are used only for comparison after
+generation.  They are not loop bounds for truncating a table or manufacturing
+a maximal layer.  Temporary outputs are written under distinct paths, and
+payloads with missing records or inconsistent hashes cause the run to stop.
+
+\subsection{Trusted and untrusted components}
+
+The trusted computational base consists of the pinned move and coordinate
+definitions, table construction, physical lifting, strict word parsers,
+coverage logic, cryptographic hashes as integrity guards, and the replay
+implementations.  The neural training code, checkpoints, floating-point
+scores, batching order, beam widths, certificate timestamps, and GPU libraries
+are outside that base.  The deterministic local-rewrite search is likewise a
+word proposer: only its checked outputs enter the proof.  These components can
+affect which word is found and how quickly, but cannot make an invalid or
+absent word pass the checker.  This separation is the main reason learned
+search is suitable here despite lacking completeness or admissibility
+guarantees.

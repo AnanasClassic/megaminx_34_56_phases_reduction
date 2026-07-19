@@ -1,5 +1,8 @@
 import contextlib
 import io
+import os
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -9,6 +12,23 @@ from mdr.resources import GIB, ResourceError, check_disk, directory_size
 
 
 class CliTests(unittest.TestCase):
+    def test_proof_cli_import_does_not_load_torch(self) -> None:
+        code = """
+import importlib.abc
+import sys
+class BlockTorch(importlib.abc.MetaPathFinder):
+    def find_spec(self, fullname, path, target=None):
+        if fullname == 'torch' or fullname.startswith('torch.'):
+            raise RuntimeError('proof CLI attempted to import torch')
+        return None
+sys.meta_path.insert(0, BlockTorch())
+import mdr.cli
+assert 'torch' not in sys.modules
+"""
+        environment = dict(os.environ)
+        environment["PYTHONPATH"] = str(Path(__file__).resolve().parents[1] / "src")
+        subprocess.run([sys.executable, "-c", code], env=environment, check=True)
+
     def test_proof_commands_fail_closed(self) -> None:
         for command in ("verify", "build-tables", "pretraining-gate"):
             with self.subTest(command=command), contextlib.redirect_stderr(io.StringIO()):

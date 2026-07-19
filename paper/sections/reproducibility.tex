@@ -1,0 +1,53 @@
+\section{Artifact and reproducibility}
+\label{sec:reproducibility}
+
+The complete artifact is available at
+\url{https://github.com/AnanasClassic/megaminx_34_56_phases_reduction}
+\cite{kuznetsov2026artifact}.
+It contains the paper sources, compressed SQLite certificate databases, both
+certificate-generation checkpoints for each pair, training and cascade logs, pinned
+problem manifests, independent verifier source, and scripts for reconstructing
+all omitted intermediate tables.  The bibliography pins the exact artifact
+commit used for this manuscript; the repository landing-page URL is provided
+only for navigation.  No DOI or third-party archival deposit is claimed at the
+time of writing.
+
+The artifact supports three levels of reproduction:
+\begin{enumerate}
+  \item \textbf{Package audit.}  \texttt{make verify-package} streams both
+    compressed databases, verifies compressed and uncompressed hashes, checks
+    their schemas and complete distributions, and verifies all checkpoint
+    hashes.  It does not require a neural framework or regenerated tables.
+  \item \textbf{Proof reproduction.}  \texttt{make verify-pair34} and
+    \texttt{make verify-pair56} fetch the digest-pinned source snapshot,
+    recompute the subgroup orders from the committed action manifests, rebuild
+    the table generator and replay implementations, regenerate the phase
+    tables, maximal records, physical products, equivalence analysis, and exact
+    rewrites, and replay every certificate.  The neural checkpoints are not
+    loaded.
+  \item \textbf{Discovery reproduction.}  The pair-specific training and
+    cascade scripts retrain a model or rerun certificate discovery on a GPU.
+    Because neural training and parallel floating-point execution need not be
+    bit-reproducible, success is judged only by the same deterministic
+    certificate checker.
+\end{enumerate}
+
+The proof environment requires Python~3.10 or newer, SymPy for the exact
+Schreier--Sims audit, and the digest-pinned Go~1.22.3 container image.  The
+published discovery run used an NVIDIA A100 80GB PCIe GPU with CUDA/bfloat16
+inference.  Proof replay is CPU-only.  The historical problem-manifest builder
+also accepts a p900 generator file with a pinned SHA-256 digest; that file is
+not redistributed here.  It is construction provenance rather than a
+proof-time dependency: the committed manifests are checked directly against
+the physical move implementation and their group orders are recomputed.
+
+The two compressed databases contain 536,369 and 399,167 direct records.  The
+committed reference reports are historical Python-only outputs whose schemas
+contain no Go transcript fields.  A full current reproduction emits a new
+report containing the Go binary digest and the exact cross-language transcript
+digest.  The repository also documents the 108-byte
+physical state format, strict FTM word grammar, coordinate conventions,
+artifact binary formats, and an explicit corruption-oriented threat model.
+Code and computational data are distributed under the repository's stated
+CC~BY-NC~4.0 terms, matching the license of the source dataset on which the
+coordinate reimplementation is based.

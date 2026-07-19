@@ -1,0 +1,67 @@
+\section{Exhaustive frontier construction}
+\label{sec:frontier}
+
+The phase tables store an exact lowering distance and one deterministic
+lowering move for every reachable coordinate.  A maximal record additionally
+contains a physical $108$-byte Megaminx state, a verified optimal lowering
+word, and masks of all possible first and last moves on optimal paths.  The
+table builder derives the maximal layers from the generated distances; the
+published counts are comparison controls and are not used to manufacture or
+truncate those layers.
+
+For each pair, the first maximal record is combined with the second maximal
+record using the lifting rule of \cref{lem:maximal-lifting}.  The checker then
+verifies, for every raw pair, that
+\begin{enumerate}
+  \item its first coordinate is the requested phase-$i$ antipode;
+  \item the stored optimal phase-$i$ word reaches the exact chosen
+    phase-$(i+1)$ representative;
+  \item that intermediate state has the requested second coordinate; and
+  \item the stored second-phase word reaches the next subgroup.
+\end{enumerate}
+Coordinate integers are never treated as physical states.  The raw order is
+first-layer major and second-layer minor, and an explicit raw-to-unique map is
+constructed without assuming injectivity.  In the regenerated data all
+$536{,}572$ and $407{,}628$ physical states are distinct.
+
+\subsection{Exact preprocessing}
+\label{sec:exact-preprocessing}
+
+Before neural search, the concatenation of the two optimal lowering words is
+processed by exact local transformations.  Consecutive moves on one face are
+combined in the face-turn metric; commuting and cancellable moves are
+normalized; and meet-in-the-middle dictionaries test windows straddling the
+phase boundary.  Every hash match is confirmed by comparing the complete
+physical state, and every resulting word is replayed from the corresponding
+frontier state.
+
+The published reductions search through $4+4$ boundary windows.  Both runs
+use the first seven faces, namely the $28$ FTM moves in $\Sigma_5$; pair 5+6
+may therefore leave its source subgroup $G_7$ during preprocessing.  They
+close $203$ and $8{,}461$ states respectively.  An
+exhaustive symmetry analysis separately reconstructs all $60$
+orientation-preserving rotations and retains only maps preserving all nested
+subgroups of the pair.  In both cases the admissible stabilizer is the
+identity.  Inversion is also rejected: it exchanges the left- and right-coset
+conventions, and the exhaustive frontier is not closed under it.  Consequently
+no nontrivial orbit reduction is hidden in the coverage counts.
+
+The remaining obligations are therefore the exact ordered ID sets shown in
+\cref{tab:coverage-partition}.  The equality in each row is a checked
+partition, not a statistical coverage estimate.
+
+\begin{table}[t]
+\centering
+\caption{Exhaustive partition of the simultaneous-maximal frontiers.}
+\label{tab:coverage-partition}
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+Pair & Raw frontier & Exact rewrites & Direct words\\
+\midrule
+3+4 & 536,572 & 203 & 536,369\\
+5+6 & 407,628 & 8,461 & 399,167\\
+\midrule
+Total & 944,200 & 8,664 & 935,536\\
+\bottomrule
+\end{tabular}
+\end{table}

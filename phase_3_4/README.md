@@ -1,4 +1,4 @@
-# Phases 3+4: exhaustive certificate for `D_(3+4) <= 21`
+# Phases 3+4: exhaustive certificate for `R_Omega(G5,G7) <= 21`
 
 This directory contains the distributed proof certificate, the two Q-MLP
 checkpoints that produced it, a portable reference replay report, and the search
@@ -10,12 +10,13 @@ The metric is FTM: every non-identity power of a face turn costs one move.
 The subgroup chain and left-coset convention are fixed in
 [`docs/phase-definitions.md`](../docs/phase-definitions.md).
 
-| Phase | Transition | Allowed source faces | States | Diameter | Maximal states |
+| Phase | Transition | Allowed source faces | States | Target radius | Maximal states |
 |---:|---|---|---:|---:|---:|
 | 3 | `G5 -> G6` | `U R F L BR BL FR` | 208,099,584 | 14 | 212 |
 | 4 | `G6 -> G7` | `U R F L BR BL` | 68,400 | 8 | 2,531 |
 
-Their maximal-layer Cartesian product has `212 * 2,531 = 536,572`
+The radii are target-coset eccentricities, not ordinary graph diameters. Their
+maximal-layer Cartesian product has `212 * 2,531 = 536,572`
 physical states. Exact boundary-window rewriting certifies 203 states without
 a model. The SQLite database contains bounded words for all 536,369 remaining
 states. The maximum independently replayed word length is 21.
@@ -81,7 +82,9 @@ The `certificates` table has one row per remaining representative:
 
 The checker requires the exact ID set, recomputes state hashes, and replays
 every word in both the combined quotient and the independent full-state
-simulator. It does not load a neural checkpoint.
+simulator. It does not load a neural checkpoint. The full reproduction also
+streams the same 536,369 physical records to the separately implemented Go
+verifier and requires exact agreement on count and maximum length.
 
 ## Fast integrity audit
 
@@ -137,4 +140,5 @@ Run `scripts/run_publication_cascade pair34` after regenerating the deterministi
 phase artifacts to repeat the staged search. Any newly produced database must
 still pass the independent certificate checker.
 
-Paper: forthcoming.
+Paper: [Exhaustive Boundary-Layer Certification for Megaminx via
+Neural-Guided Beam Cascades](../output/pdf/megaminx_boundary_layer_preprint.pdf).

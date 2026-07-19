@@ -8,6 +8,7 @@ from .pair56_problem import (
     PINNED_P900_SHA256,
     STATE_SIZE,
     _compose_gather,
+    _full_sticker_action,
     _inverse,
     _power,
     _sha256,
@@ -156,6 +157,18 @@ def validate_problem(problem: dict[str, Any]) -> None:
     conjugacy = problem.get("verifier_conjugacy")
     if not isinstance(conjugacy, list) or sorted(conjugacy) != identity:
         raise Pair34ProblemError("FullStateV1 conjugacy is absent")
+    for face_id, face in enumerate(SOURCE_FACES):
+        full_action = _full_sticker_action(face)
+        for power in range(1, 5):
+            verifier_action = actions[face_id * 4 + power - 1]
+            full_power = _power(full_action, power)
+            if any(
+                conjugacy[full_power[index]] != verifier_action[conjugacy[index]]
+                for index in identity
+            ):
+                raise Pair34ProblemError(
+                    f"action {face}{power} disagrees with FullStateV1"
+                )
     target_actions = len(TARGET_FACES) * 4
     for action in actions[:target_actions]:
         if [target[index] for index in action] != target:

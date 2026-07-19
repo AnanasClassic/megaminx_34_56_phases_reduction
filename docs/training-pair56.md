@@ -16,10 +16,17 @@ models and not a boundary-repair model.
 - symmetry augmentation: identity only;
 - random-walk `K_max`: **hard-coded to 26** and not exposed as a CLI option.
 
-The tracked problem manifest is `training/pair56/problem.json`. It was derived
-from the pinned p900 generator with SHA-256
+The tracked `training/pair56/problem.json` is the repo-local proof input.
+Without the historical p900 file, `scripts/audit_phase_groups --pair pair56`
+recomputes the exact orders of `G7`, `G8`, and `G9`, both individual quotient
+factors, and the pointwise target stabilizer from the committed actions.
+Loading the manifest also checks every action against `FullStateV1` through the
+stored conjugacy.
+
+The manifest was originally derived from the pinned p900 generator with SHA-256
 `3e38e75ee4f3387c33917393068b2fadf7959b3490f86d6e924f266960f45dbd`.
-It can be regenerated in this workspace with:
+That file is historical construction provenance, not a proof-time dependency.
+If it is separately available, regenerate the manifest with:
 
 ```bash
 scripts/build_pair56_problem

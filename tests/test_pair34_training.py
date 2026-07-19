@@ -1,13 +1,19 @@
 import unittest
 
-import torch
+try:
+    import torch
+except ModuleNotFoundError as exc:
+    if exc.name != "torch":
+        raise
+    torch = None
 
 from mdr.config import ROOT
 from mdr.pair34_problem import K_MAX, load_problem
 from mdr.pair56_problem import full_state_to_pair56
-from mdr.pair56_training import build_allowed_moves, make_generator, sample_rw_middle_batch, sparse_q_metrics
-from mdr.qmlp import PairQMLP, count_parameters
 from mdr.state import FullState, Move
+if torch is not None:
+    from mdr.pair56_training import build_allowed_moves, make_generator, sample_rw_middle_batch, sparse_q_metrics
+    from mdr.qmlp import PairQMLP, count_parameters
 
 
 class Pair34TrainingTests(unittest.TestCase):
@@ -30,6 +36,7 @@ class Pair34TrainingTests(unittest.TestCase):
             self.problem["expected_space_size"],
         )
 
+    @unittest.skipIf(torch is None, "PyTorch training dependency is not installed")
     def test_model_shape_and_size(self) -> None:
         model = PairQMLP(state_size=120, num_classes=43, actions=28)
         model.eval()
@@ -47,6 +54,7 @@ class Pair34TrainingTests(unittest.TestCase):
             expected = [target[index] for index in self.problem["actions"][move_id]]
             self.assertEqual(observed, expected, name)
 
+    @unittest.skipIf(torch is None, "PyTorch training dependency is not installed")
     def test_sampler_uses_nontrivial_g5_g7_edges(self) -> None:
         actions = torch.tensor(self.problem["actions"], dtype=torch.int64)
         target = torch.tensor(self.problem["target"], dtype=torch.int64)

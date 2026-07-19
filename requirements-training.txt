@@ -1,2 +1,2 @@
+-r requirements-proof.txt
 torch>=2.4,<3
-sympy>=1.10,<2

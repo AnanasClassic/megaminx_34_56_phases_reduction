@@ -1,0 +1,51 @@
+\section{Related work}
+\label{sec:related-work}
+
+\paragraph{Certified bounds for permutation puzzles.}
+Group actions, Cayley graphs, and subgroup methods provide the standard
+language for permutation puzzles~\cite{joyner2008}.  Pattern databases and
+memory-efficient heuristic search made large puzzle spaces computationally
+accessible~\cite{korf1997,culberson1998}.  Kunkle and Cooperman used
+computational group methods to establish a 26-move upper bound for the Rubik's
+Cube~\cite{kunkle2007}; Rokicki, Kociemba, Davidson, and Dethridge later
+certified that the diameter in the half-turn metric is 20~\cite{rokicki2013}.
+These works exemplify the separation between a large discovery computation
+and a smaller, auditable verification argument.  The present computation uses
+the same high-level discipline, but its finite obligation is a pair of
+maximal-layer products in a Megaminx subgroup chain.
+
+\paragraph{Learned heuristic search.}
+DeepCubeA combines a learned cost-to-go function with batched heuristic search
+and solves random instances of several puzzles, including the Rubik's
+Cube~\cite{agostinelli2019}.  EfficientCube demonstrates that comparatively
+simple self-supervision from goal-rooted scrambles can support neural-guided
+beam search~\cite{takano2023}.  More recent work uses neural distance models
+and massively parallel beam search on larger Rubik's Cubes
+\cite{chervov2025}.  Our training signal and model architecture are secondary
+to the certificate result: the models need only rank sufficiently many promising actions
+to find a valid word for every member of a fixed exhaustive frontier.
+
+\paragraph{Beam portfolios and batched learned heuristics.}
+Restarting a learned beam search with progressively larger widths has appeared
+in combinatorial optimization~\cite{cohenbeck2021}.  GPU batching of expensive
+learned heuristics is likewise established in heuristic-search research
+\cite{greco2022,futuhisturtevant2026}.  Accordingly, we describe our procedure
+as a \emph{beam cascade} or staged search portfolio, not as a new beam-search
+algorithm.  Its role in our computation is proof-oriented budget allocation: each
+stage searches only unresolved members of an already exhaustive family, and
+each success is persisted as a model-independent certificate.
+
+\paragraph{Megaminx computations.}
+The coordinates, phase numbering, move conventions, and reported global bound
+used here originate in the software and accompanying analysis of
+Botz~\cite{botz2026dataset,botzsource}.  The public history begins with the
+116-move chain~\cite{botz2025bound116}.  A later table correction confirmed,
+rather than improved, that value~\cite{botz2025correction}; two subsequent
+reports reduced the last-phase contribution $26\to25\to24$, giving
+$116\to115\to114$~\cite{rokicki2025bound115,rokicki2025bound114,botz2026bound114}.
+These are external software and forum reports, not computations regenerated in
+this paper.  The separate phase-1 result proves that allowing
+the first block target to vary over all $20$ corners lowers its worst-case cost
+from 10 to 9~\cite{kuznetsov2026phase1}.  Neither that result nor the present
+paper reruns all external computations behind the reported 114-move chain;
+the local theorems are unconditional, whereas the global arithmetic is not.

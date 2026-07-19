@@ -1,5 +1,6 @@
-import os
+import hashlib
 import json
+import os
 import random
 import subprocess
 import tempfile
@@ -101,6 +102,58 @@ class PrimaryCrossCheckTests(unittest.TestCase):
             solution.write_bytes(format_word(inverse))
             self.assertEqual(dual_verify_main(["--state", str(state), "--solution", str(solution), "--max-length", str(len(inverse))]), 0)
             self.assertEqual(dual_verify_main(["--state", str(state), "--solution", str(solution), "--max-length", str(len(inverse) - 1)]), 2)
+
+    def test_go_bulk_verifier_replays_every_stream_record(self) -> None:
+        solved = FullState.solved()
+        moved = solved.apply((Move("U", 1),))
+        payload = (
+            f"0\t{solved.encode().hex()}\t\n"
+            f"1\t{moved.encode().hex()}\tU4\n"
+        ).encode("ascii")
+        result = subprocess.run(
+            [str(PRIMARY), "verify-batch", "--target", "solved", "--max-length", "1"],
+            input=payload, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True,
+        )
+        self.assertEqual(json.loads(result.stdout), {
+            "valid": True,
+            "records": 2,
+            "maximum_solution_length": 1,
+            "target": "solved",
+            "max_length": 1,
+            "first_state_id": 0,
+            "last_state_id": 1,
+            "transcript_sha256": hashlib.sha256(payload).hexdigest(),
+        })
+
+    def test_go_bulk_verifier_rejects_duplicate_ids(self) -> None:
+        state = FullState.solved().encode().hex()
+        result = subprocess.run(
+            [str(PRIMARY), "verify-batch", "--target", "g7", "--max-length", "21"],
+            input=f"4\t{state}\t\n4\t{state}\t\n".encode("ascii"),
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False,
+        )
+        self.assertEqual(result.returncode, 2)
+        self.assertIn(b"not strictly increasing", result.stderr)
+
+    def test_go_bulk_verifier_rejects_corrupt_records(self) -> None:
+        solved = FullState.solved()
+        moved = solved.apply((Move("U", 1),))
+        cases = {
+            "unterminated": f"1\t{solved.encode().hex()}\t".encode("ascii"),
+            "invalid-state": b"1\t00\t\n",
+            "invalid-token": f"1\t{solved.encode().hex()}\tX1\n".encode("ascii"),
+            "wrong-target": f"1\t{moved.encode().hex()}\t\n".encode("ascii"),
+            "over-bound": f"1\t{solved.encode().hex()}\tU1 U4\n".encode("ascii"),
+        }
+        for name, payload in cases.items():
+            with self.subTest(name=name):
+                result = subprocess.run(
+                    [str(PRIMARY), "verify-batch", "--target", "solved", "--max-length", "1"],
+                    input=payload, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                    check=False,
+                )
+                self.assertEqual(result.returncode, 2)
+                self.assertTrue(result.stderr)
 
     def test_upstream_coordinates_are_left_cosets_and_match_targets(self) -> None:
         rng = random.Random(20260714)

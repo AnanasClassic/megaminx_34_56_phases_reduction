@@ -1,0 +1,102 @@
+\documentclass[11pt]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{microtype}
+\usepackage[a4paper,margin=28mm]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{booktabs,array,tabularx,longtable}
+\usepackage{enumitem}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,fit,positioning}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage[nameinlink,capitalise,noabbrev]{cleveref}
+\usepackage{listings}
+\usepackage{url}
+\input{author.tex}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue!55!black,
+  citecolor=blue!55!black,
+  urlcolor=blue!55!black,
+  pdftitle={Exhaustive Boundary-Layer Certification for Megaminx via Neural-Guided Beam Cascades},
+  pdfauthor={\PaperAuthor}
+}
+\setlist{nosep}
+\lstset{basicstyle=\ttfamily\small,breaklines=true,columns=fullflexible}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{remark}[theorem]{Remark}
+
+\newcommand{\FTM}{\mathrm{FTM}}
+\newcommand{\Rsolve}{\mathcal{R}}
+\newcommand{\Gpair}[2]{\Rsolve_{\Omega}(G_{#1},G_{#2})}
+
+\title{Exhaustive Boundary-Layer Certification for Megaminx\\
+  via Neural-Guided Beam Cascades}
+\author{\PaperAuthor\\\small \PaperAffiliation}
+\date{July 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+We certify one-move reductions for two adjacent phase pairs in a subgroup-chain
+Megaminx solver under the face-turn metric.  The separate worst-case solving
+distances of phases 3 and 4 are 14 and 8, while those of phases 5 and 6 are 13
+and 13.  A boundary-layer argument shows that improving either sum by one
+requires checking only compositions for which both constituent coordinates
+are maximally distant from their target subgroups.  This reduces combined
+quotients of sizes $14{,}234{,}011{,}545{,}600$ and
+$1{,}664{,}617{,}163{,}489{,}280$ to exhaustive frontiers of $536{,}572$ and
+$407{,}628$ physical states.  Exact local rewrites certify $8{,}664$ states.
+For the remaining $935{,}536$, compact neural action-ranking models guide
+batched beam-search cascades that produce bounded solution words.  The models
+and search scores are not proof objects.  A deterministic checker requires
+exact frontier coverage, while separately implemented replay engines validate
+every word proposed by neural-guided search; exact-rewrite words are also
+replayed physically.  In the published run the models supplied $935{,}536$
+direct certificates in approximately $6.25$ active A100 GPU-hours, excluding
+training, preprocessing, and verification.  We thereby obtain the ambient-FTM
+bounds
+\[
+  \Gpair{5}{7}\le 21,
+  \qquad
+  \Gpair{7}{9}\le 25.
+\]
+Relative to the externally reported 114-move phase chain, these local results
+give the conditional bound 112; together with the separately certified
+color-neutral first-phase result, they give the likewise conditional bound
+111.  The paper is accompanied by the complete certificate databases, pinned
+phase-table reconstruction, and fail-closed verification software.
+\end{abstract}
+
+\input{sections/introduction}
+\input{sections/related_work}
+\input{sections/mathematics}
+\input{sections/computation}
+\input{sections/neural_search}
+\input{sections/verification}
+\input{sections/evaluation}
+\input{sections/reproducibility}
+\input{sections/conclusion}
+
+\appendix
+\input{sections/appendices}
+
+\begingroup
+\small
+\bibliographystyle{abbrv}
+\bibliography{references}
+\endgroup
+
+\end{document}

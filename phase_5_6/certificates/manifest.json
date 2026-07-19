@@ -2,7 +2,7 @@
   "schema_version": 1,
   "pair": "pair56",
   "metric": "FTM",
-  "claim": "D_(5+6) <= 25",
+  "claim": "R_Sigma5(G7,G9) <= 25",
   "archive": {
     "file": "beam-cascade.sqlite3.xz",
     "bytes": 36727984,

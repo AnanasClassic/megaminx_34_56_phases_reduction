@@ -52,7 +52,9 @@ mask test found no compatible same-face merge.
 
 Local rewrites first normalize commuting/cancellable moves, then use exact
 meet-in-the-middle joins around the phase boundary. The published maps cover
-windows through 4+4 moves. Pair34 uses its 28 phase moves; pair56 was checked
-over all 48 moves. A hash match is only a candidate: full 108-byte states are
-compared before a witness is emitted, and every emitted word is independently
-replayed afterward.
+windows through 4+4 moves. Both published maps use the first seven faces, the
+28-move `G5` alphabet. Pair56 therefore allows exact rewrites to leave its
+20-move `G7` source alphabet, but does not claim an all-48-move preprocessing
+search. A hash match is only a candidate: full 108-byte states are compared
+before a witness is emitted, and every emitted word is independently replayed
+afterward.
